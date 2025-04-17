@@ -218,7 +218,9 @@ else:
                         for col in df.columns:
                             # Replace non-finite values with NaN so pandas can handle them
                             if df[col].dtype in ['float', 'int']:
-                                df[col] = df[col].apply(lambda x: float('nan') if not pd.api.types.is_number(x) or pd.isna(x) or pd.isinf(x) else x)
+                                # Use numpy's isinf instead of pandas
+                                import numpy as np
+                                df[col] = df[col].apply(lambda x: float('nan') if not pd.api.types.is_number(x) or pd.isna(x) or (isinstance(x, float) and np.isinf(x)) else x)
                         
                         # Choose an appropriate index for plotting
                         if 'index' in df.columns:
@@ -230,7 +232,7 @@ else:
                                 plotting_df = plotting_df.set_index('plot_index')
                                 
                                 # Select only finite numeric columns
-                                numeric_cols = plotting_df.select_dtypes(include=['float', 'int']).columns
+                                numeric_cols = plotting_df.select_dtypes(include=['float64', 'float32', 'int64', 'int32']).columns
                                 # Exclude the original index column
                                 if 'index' in numeric_cols:
                                     numeric_cols = [col for col in numeric_cols if col != 'index']
@@ -255,7 +257,7 @@ else:
                                 plotting_df = plotting_df.set_index('plot_index')
                                 
                                 # Select only finite numeric columns
-                                numeric_cols = plotting_df.select_dtypes(include=['float', 'int']).columns
+                                numeric_cols = plotting_df.select_dtypes(include=['float64', 'float32', 'int64', 'int32']).columns
                                 
                                 if not numeric_cols.empty:
                                     st.line_chart(plotting_df[numeric_cols])
@@ -273,7 +275,7 @@ else:
                             plotting_df = df.set_index('plot_index')
                             
                             # Select only numeric columns
-                            numeric_cols = plotting_df.select_dtypes(include=['float', 'int']).columns
+                            numeric_cols = plotting_df.select_dtypes(include=['float64', 'float32', 'int64', 'int32']).columns
                             
                             if not numeric_cols.empty:
                                 st.line_chart(plotting_df[numeric_cols])
