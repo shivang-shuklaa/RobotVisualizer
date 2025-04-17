@@ -104,11 +104,17 @@ if st.session_state.data is not None:
     # Time slider
     if "time_range" in st.session_state.data:
         min_time, max_time = st.session_state.data["time_range"]
+        # Convert all values to float to avoid type mismatch
+        min_time_float = float(min_time)
+        max_time_float = float(max_time)
+        current_time_float = float(st.session_state.current_time)
+        
         st.session_state.current_time = st.sidebar.slider(
             "Timeline",
-            min_value=min_time,
-            max_value=max_time,
-            value=st.session_state.current_time
+            min_value=min_time_float,
+            max_value=max_time_float,
+            value=current_time_float,
+            step=float(0.1)  # Explicitly convert to float
         )
 
 # Main content area
