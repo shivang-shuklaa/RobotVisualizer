@@ -172,7 +172,72 @@ else:
                     df = pd.DataFrame(values)
                     if not df.empty:
                         st.subheader(f"{topic}")
-                        st.line_chart(df)
+                        
+                        # Make sure all values are finite before plotting
+                        for col in df.columns:
+                            # Replace non-finite values with NaN so pandas can handle them
+                            if df[col].dtype in ['float', 'int']:
+                                df[col] = df[col].apply(lambda x: float('nan') if not pd.api.types.is_number(x) or pd.isna(x) or pd.isinf(x) else x)
+                        
+                        # Choose an appropriate index for plotting
+                        if 'index' in df.columns:
+                            # Filter out any NaN values and reset index to avoid gaps
+                            plotting_df = df.dropna(subset=['index']).copy()
+                            if not plotting_df.empty:
+                                # Use sequential numbers if there are any issues with the index
+                                plotting_df['plot_index'] = range(len(plotting_df))
+                                plotting_df = plotting_df.set_index('plot_index')
+                                
+                                # Select only finite numeric columns
+                                numeric_cols = plotting_df.select_dtypes(include=['float', 'int']).columns
+                                # Exclude the original index column
+                                if 'index' in numeric_cols:
+                                    numeric_cols = [col for col in numeric_cols if col != 'index']
+                                
+                                if not numeric_cols.empty:
+                                    st.line_chart(plotting_df[numeric_cols])
+                                    
+                                    # Provide additional info about the data
+                                    with st.expander("Data Statistics"):
+                                        st.write(plotting_df[numeric_cols].describe())
+                                else:
+                                    st.info(f"No valid numeric data to plot for {topic}")
+                            else:
+                                st.info(f"No valid data points for {topic}")
+                        elif 'time' in df.columns:
+                            # Filter out any NaN values and reset index to avoid gaps
+                            plotting_df = df.dropna(subset=['time']).copy()
+                            if not plotting_df.empty:
+                                # Sort by time and use sequential indices for plotting
+                                plotting_df = plotting_df.sort_values('time')
+                                plotting_df['plot_index'] = range(len(plotting_df))
+                                plotting_df = plotting_df.set_index('plot_index')
+                                
+                                # Select only finite numeric columns
+                                numeric_cols = plotting_df.select_dtypes(include=['float', 'int']).columns
+                                
+                                if not numeric_cols.empty:
+                                    st.line_chart(plotting_df[numeric_cols])
+                                    
+                                    # Provide additional info about the data
+                                    with st.expander("Data Statistics"):
+                                        st.write(plotting_df[numeric_cols].describe())
+                                else:
+                                    st.info(f"No valid numeric data to plot for {topic}")
+                            else:
+                                st.info(f"No valid data points for {topic}")
+                        else:
+                            # Create a simple sequential index for plotting
+                            df['plot_index'] = range(len(df))
+                            plotting_df = df.set_index('plot_index')
+                            
+                            # Select only numeric columns
+                            numeric_cols = plotting_df.select_dtypes(include=['float', 'int']).columns
+                            
+                            if not numeric_cols.empty:
+                                st.line_chart(plotting_df[numeric_cols])
+                            else:
+                                st.info(f"No numeric data to plot for {topic}")
             else:
                 st.info("No time series data available for selected topics")
         else:
@@ -192,32 +257,68 @@ else:
                 # Display state data in columns
                 if current_state:
                     cols = st.columns(3)
+                    col_index = 0
                     
                     # Position data
                     if "position" in current_state:
-                        with cols[0]:
+                        with cols[col_index % 3]:
                             st.subheader("Position")
                             pos = current_state["position"]
                             st.write(f"X: {pos.get('x', 0):.3f}")
                             st.write(f"Y: {pos.get('y', 0):.3f}")
                             st.write(f"Z: {pos.get('z', 0):.3f}")
+                        col_index += 1
                     
                     # Orientation data
                     if "orientation" in current_state:
-                        with cols[1]:
+                        with cols[col_index % 3]:
                             st.subheader("Orientation")
                             orient = current_state["orientation"]
                             st.write(f"X: {orient.get('x', 0):.3f}")
                             st.write(f"Y: {orient.get('y', 0):.3f}")
                             st.write(f"Z: {orient.get('z', 0):.3f}")
                             st.write(f"W: {orient.get('w', 0):.3f}")
+                        col_index += 1
                     
-                    # Joint states or other data
+                    # Joint states data
                     if "joints" in current_state:
-                        with cols[2]:
+                        with cols[col_index % 3]:
                             st.subheader("Joint States")
                             for joint_name, joint_value in current_state["joints"].items():
                                 st.write(f"{joint_name}: {joint_value:.3f}")
+                        col_index += 1
+                    
+                    # Capability data
+                    if "capability" in current_state:
+                        with cols[col_index % 3]:
+                            st.subheader("Capability")
+                            st.write(current_state["capability"])
+                        col_index += 1
+                    
+                    # Status information
+                    if "status" in current_state:
+                        with cols[col_index % 3]:
+                            st.subheader("Status")
+                            st.write(current_state["status"])
+                        col_index += 1
+                    
+                    # Event information
+                    if "event" in current_state:
+                        with cols[col_index % 3]:
+                            st.subheader("Event")
+                            event_value = current_state["event"]
+                            event_name = "Unknown"
+                            # Map event codes to names
+                            event_map = {
+                                0: "Info",
+                                1: "Start",
+                                2: "End",
+                                3: "Error",
+                                4: "Success"
+                            }
+                            if event_value in event_map:
+                                event_name = event_map[event_value]
+                            st.write(f"{event_name} ({event_value})")
                 else:
                     st.info("No state data available for the current time point")
             else:

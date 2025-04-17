@@ -148,6 +148,7 @@ def extract_time_series(data):
         # Group messages by topic
         topic_messages = {}
         
+        # First pass: collect all messages and timestamps
         for msg_data in data:
             if "op" in msg_data and msg_data["op"] == "publish" and "topic" in msg_data and "msg" in msg_data:
                 topic = msg_data["topic"]
@@ -163,6 +164,10 @@ def extract_time_series(data):
                     if "secs" in stamp and "nsecs" in stamp:
                         timestamp = float(stamp["secs"]) + float(stamp["nsecs"]) / 1e9
                 
+                # Use sequential index if timestamp is 0
+                if timestamp == 0:
+                    timestamp = len(topic_messages[topic])
+                
                 # Process message content
                 entry = {"time": timestamp, "msg": msg_content}
                 topic_messages[topic].append(entry)
@@ -170,39 +175,88 @@ def extract_time_series(data):
         # Convert grouped messages to time series format
         for topic, messages in topic_messages.items():
             if messages:
-                # Extract numerical data for plotting
-                converted_data = []
-                for msg in messages:
-                    entry = {"time": msg["time"]}
-                    
-                    # Extract values from message content
-                    found_values = False
-                    if isinstance(msg["msg"], dict):
-                        # Extract first level numeric values
-                        for key, value in msg["msg"].items():
-                            if isinstance(value, (int, float)):
-                                entry[key] = value
-                                found_values = True
-                        
-                        # Try to extract values from 'target' if present
-                        if "target" in msg["msg"] and isinstance(msg["msg"]["target"], dict):
-                            for key, value in msg["msg"]["target"].items():
-                                if isinstance(value, (int, float)) and key not in entry:
-                                    entry[f"target_{key}"] = value
-                                    found_values = True
-                        
-                        # Try to extract values from 'source' if present
-                        if "source" in msg["msg"] and isinstance(msg["msg"]["source"], dict):
-                            for key, value in msg["msg"]["source"].items():
-                                if isinstance(value, (int, float)) and key not in entry:
-                                    entry[f"source_{key}"] = value
-                                    found_values = True
-                    
-                    if found_values:
-                        converted_data.append(entry)
+                # Sort messages by timestamp
+                messages.sort(key=lambda x: x["time"])
                 
-                if converted_data:
-                    time_series[topic] = converted_data
+                # Check if this is the capabilities topic
+                if topic == "/capabilities/events":
+                    # Special handling for capabilities events
+                    converted_data = []
+                    message_index = 0
+                    for msg in messages:
+                        # Use increasing index for x-axis
+                        entry = {"index": message_index}
+                        message_index += 1
+                        
+                        # Add timestamp 
+                        entry["time"] = msg["time"]
+                        
+                        # Extract event information from targets
+                        if "target" in msg["msg"] and isinstance(msg["msg"]["target"], dict):
+                            target = msg["msg"]["target"]
+                            
+                            # Track event type as value (using integer for better plotting)
+                            if "event" in target:
+                                entry["event"] = float(target["event"])
+                            
+                            # Add thread_id as a numeric value
+                            if "thread_id" in target:
+                                entry["thread_id"] = float(target["thread_id"])
+                                
+                            # Check if server is ready
+                            if "server_ready" in target:
+                                entry["server_ready"] = 1.0 if target["server_ready"] else 0.0
+                                
+                            # Check if there was an error
+                            if "error" in target:
+                                entry["error"] = 1.0 if target["error"] else 0.0
+                        
+                        # Only add entry if it has some numeric values
+                        if len(entry) > 2:  # more than just index and time
+                            converted_data.append(entry)
+                    
+                    if converted_data:
+                        time_series[topic] = converted_data
+                else:
+                    # Generic handling for other topics
+                    converted_data = []
+                    message_index = 0
+                    for msg in messages:
+                        entry = {"index": message_index, "time": msg["time"]}
+                        message_index += 1
+                        
+                        # Extract values from message content
+                        found_values = False
+                        if isinstance(msg["msg"], dict):
+                            # Extract first level numeric values
+                            for key, value in msg["msg"].items():
+                                if isinstance(value, (int, float)):
+                                    entry[key] = float(value)
+                                    found_values = True
+                            
+                            # Try to extract values from 'target' if present
+                            if "target" in msg["msg"] and isinstance(msg["msg"]["target"], dict):
+                                for key, value in msg["msg"]["target"].items():
+                                    if isinstance(value, (int, float)) and key not in entry:
+                                        entry[f"target_{key}"] = float(value)
+                                        found_values = True
+                            
+                            # Try to extract values from 'source' if present
+                            if "source" in msg["msg"] and isinstance(msg["msg"]["source"], dict):
+                                for key, value in msg["msg"]["source"].items():
+                                    if isinstance(value, (int, float)) and key not in entry:
+                                        entry[f"source_{key}"] = float(value)
+                                        found_values = True
+                        
+                        # Always include the entry with at least the index and time
+                        if not found_values:
+                            # Add a default value for plotting
+                            entry["value"] = 1.0
+                        
+                        converted_data.append(entry)
+                    
+                    if converted_data:
+                        time_series[topic] = converted_data
         
         return time_series
     
