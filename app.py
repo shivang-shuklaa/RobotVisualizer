@@ -4,8 +4,9 @@ import json
 import os
 import time
 import tempfile
+import numpy as np
 from utils.data_processor import process_robot_data, validate_json_data
-from utils.foxglove_integration import create_foxglove_iframe, get_available_topics
+from utils.foxglove_integration import create_event_timeline, get_available_topics
 
 # Set page configuration
 st.set_page_config(
