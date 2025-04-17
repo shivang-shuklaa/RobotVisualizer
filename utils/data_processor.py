@@ -72,6 +72,9 @@ def process_robot_data(content):
     # Extract robot state information
     result["robot_state"] = extract_robot_state(data)
     
+    # Extract node paths for thinking visualization
+    result["node_paths"] = extract_node_paths(data)
+    
     # Extract topic metadata
     result["topic_metadata"] = extract_topic_metadata(data)
     
@@ -433,6 +436,92 @@ def extract_robot_state(data):
                 state_data[str(timestamp)] = {"position": pose.get("position", {}), "orientation": pose.get("orientation", {})}
     
     return state_data
+
+def extract_node_paths(data):
+    """
+    Extract node paths from the message data to visualize robot thinking patterns.
+    
+    Args:
+        data: The parsed JSON data
+        
+    Returns:
+        dict: Path information for visualization
+    """
+    paths = {}
+    
+    # Check if it's ROSBridge format
+    if isinstance(data, list) and len(data) > 0 and all(isinstance(item, dict) for item in data):
+        # Track nodes and their connections by source/target
+        nodes = {}
+        connections = []
+        
+        # First pass: collect all nodes
+        for msg_data in data:
+            if "msg" in msg_data and isinstance(msg_data["msg"], dict):
+                msg = msg_data["msg"]
+                
+                # Extract source info
+                if "source" in msg and isinstance(msg["source"], dict):
+                    source = msg["source"]
+                    if "node" in source:
+                        node_id = source["node"]
+                        # Create node if not exists
+                        if node_id not in nodes:
+                            nodes[node_id] = {
+                                "id": node_id,
+                                "name": source.get("name", node_id),
+                                "type": "source",
+                                "capability": source.get("capability", "unknown"),
+                                "count": 0
+                            }
+                        # Increment message count
+                        nodes[node_id]["count"] += 1
+                
+                # Extract target info
+                if "target" in msg and isinstance(msg["target"], dict):
+                    target = msg["target"]
+                    if "node" in target:
+                        node_id = target["node"]
+                        # Create node if not exists
+                        if node_id not in nodes:
+                            nodes[node_id] = {
+                                "id": node_id,
+                                "name": target.get("name", node_id),
+                                "type": "target",
+                                "event": target.get("event", None),
+                                "count": 0
+                            }
+                        # Increment message count
+                        nodes[node_id]["count"] += 1
+                
+                # Record connection between source and target
+                if ("source" in msg and "target" in msg and 
+                    isinstance(msg["source"], dict) and isinstance(msg["target"], dict) and
+                    "node" in msg["source"] and "node" in msg["target"]):
+                    
+                    source_id = msg["source"]["node"]
+                    target_id = msg["target"]["node"]
+                    
+                    # Extract timestamp if available
+                    timestamp = 0
+                    if "header" in msg and "stamp" in msg["header"]:
+                        stamp = msg["header"]["stamp"]
+                        if "secs" in stamp and "nsecs" in stamp:
+                            timestamp = float(stamp["secs"]) + float(stamp["nsecs"]) / 1e9
+                    
+                    # Store connection details
+                    connections.append({
+                        "source": source_id,
+                        "target": target_id,
+                        "timestamp": timestamp,
+                        "topic": msg_data.get("topic", ""),
+                        "event": msg["target"].get("event", None)
+                    })
+        
+        paths["nodes"] = list(nodes.values())
+        paths["connections"] = connections
+    
+    return paths
 
 def extract_topic_metadata(data):
     """

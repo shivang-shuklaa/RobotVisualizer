@@ -308,6 +308,191 @@ def get_available_topics(data):
     
     return topics
 
+def create_node_path_visualization(data, current_time=None, height=600):
+    """
+    Create a visualization of the robot thinking pattern through node paths.
+    
+    Args:
+        data: Processed data dictionary containing node path information
+        current_time: Current playback time
+        height: Height of the visualization
+        
+    Returns:
+        Streamlit matplotlib figure
+    """
+    if "node_paths" not in data or not data["node_paths"]:
+        st.info("No node path data available for visualization")
+        return None
+    
+    node_paths = data["node_paths"]
+    
+    # Check if we have nodes and connections
+    if "nodes" not in node_paths or "connections" not in node_paths:
+        st.info("Node path data is incomplete")
+        return None
+    
+    nodes = node_paths["nodes"]
+    connections = node_paths["connections"]
+    
+    if not nodes or not connections:
+        st.info("No nodes or connections found in the data")
+        return None
+    
+    # Create a figure for the visualization
+    fig, ax = plt.subplots(figsize=(10, height/80))
+    
+    # Create a dictionary to map node IDs to positions
+    node_positions = {}
+    
+    # Map node types to colors
+    node_type_colors = {
+        "source": "#2ca02c",  # Green for source nodes
+        "target": "#1f77b4",  # Blue for target nodes
+    }
+    
+    # Map event types to colors for connections
+    event_colors = {
+        0: "#1f77b4",  # Blue for Info
+        1: "#2ca02c",  # Green for Start
+        2: "#d62728",  # Red for End
+        3: "#ff7f0e",  # Orange for Error
+        4: "#9467bd"   # Purple for Success
+    }
+    
+    # Sort connections by timestamp
+    sorted_connections = sorted(connections, key=lambda x: x.get("timestamp", 0))
+    
+    # Set up vertical positioning for timeline
+    timeline_height = len(sorted_connections)
+    
+    # First draw connections (edges)
+    for i, conn in enumerate(sorted_connections):
+        source_id = conn.get("source")
+        target_id = conn.get("target")
+        
+        # Get event type for color
+        event_type = conn.get("event")
+        edge_color = event_colors.get(event_type, "#7f7f7f")  # Gray default
+        
+        # Position nodes vertically on timeline
+        y_pos = timeline_height - i
+        
+        # Position source node on the left, target on the right
+        source_x = 1
+        target_x = 3
+        
+        # Store positions for node rendering
+        node_positions[source_id] = (source_x, y_pos)
+        node_positions[target_id] = (target_x, y_pos)
+        
+        # Draw connection line
+        ax.plot([source_x, target_x], [y_pos, y_pos], color=edge_color, linewidth=2, 
+                alpha=0.8, zorder=1)
+        
+        # Add connection timestamp
+        ts = conn.get("timestamp", 0)
+        if ts > 0:
+            time_str = f"{ts:.2f}s"
+            ax.text((source_x + target_x) / 2, y_pos + 0.1, time_str, 
+                   ha='center', va='bottom', fontsize=8, alpha=0.7)
+        
+        # Add topic name
+        topic = conn.get("topic", "")
+        if topic:
+            ax.text((source_x + target_x) / 2, y_pos - 0.1, 
+                   topic.split('/')[-1], ha='center', va='top', fontsize=6, alpha=0.5)
+    
+    # Now draw nodes (to be on top of edges)
+    node_drawn = set()  # Keep track of already drawn nodes
+    
+    for node_id, (x, y) in node_positions.items():
+        # Find node data
+        node_data = None
+        for node in nodes:
+            if node.get("id") == node_id:
+                node_data = node
+                break
+        
+        if not node_data:
+            continue
+        
+        # Get node properties
+        node_type = node_data.get("type", "unknown")
+        node_name = node_data.get("name", node_id)
+        
+        # Get color based on node type
+        node_color = node_type_colors.get(node_type, "#7f7f7f")
+        
+        # Only draw the node once (might be referenced by multiple connections)
+        if node_id not in node_drawn:
+            ax.scatter(x, y, color=node_color, s=100, zorder=3)
+            node_drawn.add(node_id)
+        
+        # Add node name
+        ax.text(x, y, f" {node_name}", fontsize=8, 
+               ha='left' if x == 1 else 'right',  # Align left for source, right for target
+               va='center')
+    
+    # Highlight current time if provided
+    if current_time is not None:
+        # Find the closest connection to the current time
+        closest_idx = 0
+        min_diff = float('inf')
+        
+        for i, conn in enumerate(sorted_connections):
+            ts = conn.get("timestamp", 0)
+            diff = abs(ts - current_time)
+            if diff < min_diff:
+                min_diff = diff
+                closest_idx = i
+        
+        # Highlight the line corresponding to current time
+        y_pos = timeline_height - closest_idx
+        ax.axhline(y_pos, color='red', linestyle='--', linewidth=1, alpha=0.7)
+    
+    # Format the plot
+    ax.set_title("Robot Thinking Pattern (Node Paths)")
+    ax.set_xticks([1, 3])
+    ax.set_xticklabels(["Source Nodes", "Target Nodes"])
+    ax.set_yticks([])  # Hide y-axis ticks
+    
+    # Set limits with some padding
+    ax.set_xlim(0.5, 3.5)
+    if timeline_height > 0:
+        ax.set_ylim(0.5, timeline_height + 0.5)
+    
+    # Create legend for node types
+    node_legend_elements = []
+    for node_type, color in node_type_colors.items():
+        node_legend_elements.append(plt.Line2D([0], [0], marker='o', color='w', 
+                                     markerfacecolor=color, markersize=10, 
+                                     label=f"{node_type.capitalize()} Node"))
+    
+    # Create legend for event types
+    event_legend_elements = []
+    event_names = {
+        0: "Info",
+        1: "Start",
+        2: "End",
+        3: "Error",
+        4: "Success"
+    }
+    
+    for event_type, color in event_colors.items():
+        event_legend_elements.append(plt.Line2D([0], [0], color=color, lw=2,
+                                     label=f"{event_names.get(event_type, 'Unknown')} Event"))
+    
+    # Add the legends
+    legend1 = ax.legend(handles=node_legend_elements, loc='upper left', 
+                        title="Node Types", fontsize='small')
+    ax.add_artist(legend1)
+    
+    ax.legend(handles=event_legend_elements, loc='upper right', 
+              title="Event Types", fontsize='small')
+    
+    plt.tight_layout()
+    return fig
+
 def update_foxglove_state(iframe_id, current_time, selected_topics=None, playback_speed=1.0):
     """
     Generate JavaScript to update the Foxglove iframe state.

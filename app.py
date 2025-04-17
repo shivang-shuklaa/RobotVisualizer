@@ -243,7 +243,7 @@ else:
                                 if 'index' in numeric_cols:
                                     numeric_cols = [col for col in numeric_cols if col != 'index']
                                 
-                                if not numeric_cols.empty:
+                                if len(numeric_cols) > 0:
                                     st.line_chart(plotting_df[numeric_cols])
                                     
                                     # Provide additional info about the data
@@ -265,7 +265,7 @@ else:
                                 # Select only finite numeric columns
                                 numeric_cols = plotting_df.select_dtypes(include=['float64', 'float32', 'int64', 'int32']).columns
                                 
-                                if not numeric_cols.empty:
+                                if len(numeric_cols) > 0:
                                     st.line_chart(plotting_df[numeric_cols])
                                     
                                     # Provide additional info about the data
@@ -283,7 +283,7 @@ else:
                             # Select only numeric columns
                             numeric_cols = plotting_df.select_dtypes(include=['float64', 'float32', 'int64', 'int32']).columns
                             
-                            if not numeric_cols.empty:
+                            if len(numeric_cols) > 0:
                                 st.line_chart(plotting_df[numeric_cols])
                             else:
                                 st.info(f"No numeric data to plot for {topic}")
