@@ -120,21 +120,62 @@ if st.session_state.data is not None:
 # Main content area
 if st.session_state.data is None:
     # Display instructions when no data is loaded
-    st.info("Please upload a JSON file containing robot data to begin visualization.")
+    st.title("Robot Data Visualization Tool")
     
     st.markdown("""
-    ### Supported Data Format
-    The application supports JSON files with robot data that includes:
-    - Robot position and orientation data
-    - Sensor readings
-    - Time-series information
-    - Joint states and transformations
+    This tool allows you to visualize and analyze robot data from JSON files, with a focus on ROS (Robot Operating System) messages.
     
-    ### Tips for Visualization
+    ## Getting Started
     1. Upload your JSON robot data file using the sidebar
-    2. Select the topics you want to visualize
-    3. Use the playback controls to animate the data
-    4. Filter specific data streams for detailed analysis
+    2. The app will automatically process and extract relevant data
+    3. Use the visualization tabs to explore different aspects of the data
+    
+    ## Visualization Features
+    """)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("3D Visualization")
+        st.markdown("""
+        - Interactive 3D view of robot position and movement
+        - Foxglove integration for advanced visualization
+        - View coordinate frames and transformations
+        """)
+        
+        st.subheader("Time Series Data")
+        st.markdown("""
+        - Plot sensor readings and state changes over time
+        - Filter specific topics for detailed analysis
+        - Compare multiple data streams
+        """)
+    
+    with col2:
+        st.subheader("Robot State")
+        st.markdown("""
+        - View current robot state at any point in time
+        - Position and orientation information
+        - Joint states and system status
+        """)
+        
+        st.subheader("Playback Controls")
+        st.markdown("""
+        - Animation controls to visualize changes over time
+        - Timeline slider for precise time selection
+        - Play/pause and reset functionality
+        """)
+    
+    st.markdown("""
+    ## Supported Data Formats
+    
+    The application primarily supports JSON files with ROS bridge messages, including:
+    
+    - Standard ROS message format with topic, timestamp, and data
+    - ROS bridge messages with operation, topic, and message content
+    - Robot state information including position, orientation, and joint states
+    - Capability events and state transitions
+    
+    **Start by uploading a JSON file using the file uploader in the sidebar!**
     """)
     
 else:

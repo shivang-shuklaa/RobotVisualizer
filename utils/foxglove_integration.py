@@ -69,11 +69,88 @@ def get_layout_config(selected_topics=None):
     Returns:
         dict: Layout configuration
     """
-    # Default layout with 3D and basic panels
+    # Default layout optimized for ROS bridge capabilities messages
     layout = {
         "direction": "row",
         "first": {
+            "direction": "column",
             "first": {
+                "activePanel": {
+                    "title": "3D",
+                    "type": "3D"
+                }
+            },
+            "second": {
+                "direction": "row",
+                "first": {
+                    "activePanel": {
+                        "title": "Raw Messages",
+                        "type": "RawMessages",
+                        "config": {
+                            "topicPath": "/capabilities/events"
+                        }
+                    }
+                },
+                "second": {
+                    "activePanel": {
+                        "title": "State Transitions",
+                        "type": "StateTransitions",
+                        "config": {
+                            "paths": {
+                                "timestamp": "header.stamp",
+                                "state": "target.event"
+                            }
+                        }
+                    }
+                },
+                "splitPercentage": 50
+            },
+            "splitPercentage": 60
+        },
+        "second": {
+            "direction": "column",
+            "first": {
+                "activePanel": {
+                    "title": "Plot",
+                    "type": "Plot",
+                    "config": {
+                        "paths": [
+                            {
+                                "value": "target.event",
+                                "enabled": True,
+                                "timestampMethod": "header.stamp"
+                            },
+                            {
+                                "value": "target.thread_id",
+                                "enabled": True,
+                                "timestampMethod": "header.stamp"
+                            }
+                        ]
+                    }
+                }
+            },
+            "second": {
+                "activePanel": {
+                    "title": "Table",
+                    "type": "Table",
+                    "config": {
+                        "topicPath": "/capabilities/events"
+                    }
+                }
+            },
+            "splitPercentage": 50
+        },
+        "splitPercentage": 60
+    }
+    
+    # Customize layout based on selected topics
+    if selected_topics:
+        has_capabilities = any("/capabilities" in topic for topic in selected_topics)
+        
+        # If capabilities topics are not selected, use a more generic layout
+        if not has_capabilities:
+            layout = {
+                "direction": "row",
                 "first": {
                     "direction": "column",
                     "first": {
@@ -89,40 +166,25 @@ def get_layout_config(selected_topics=None):
                         }
                     },
                     "splitPercentage": 70
-                }
-            },
-            "second": {
-                "activePanel": {
-                    "title": "Plot",
-                    "type": "Plot"
-                }
-            },
-            "direction": "column",
-            "splitPercentage": 60
-        },
-        "second": {
-            "first": {
-                "activePanel": {
-                    "title": "State Transitions",
-                    "type": "StateTransitions"
-                }
-            },
-            "second": {
-                "activePanel": {
-                    "title": "Image",
-                    "type": "Image"
-                }
-            },
-            "direction": "column",
-            "splitPercentage": 50
-        },
-        "splitPercentage": 70
-    }
-    
-    # Customize layout based on selected topics if needed
-    if selected_topics:
-        # Could add logic here to customize panels based on topic types
-        pass
+                },
+                "second": {
+                    "direction": "column",
+                    "first": {
+                        "activePanel": {
+                            "title": "Plot",
+                            "type": "Plot"
+                        }
+                    },
+                    "second": {
+                        "activePanel": {
+                            "title": "Table",
+                            "type": "Table"
+                        }
+                    },
+                    "splitPercentage": 50
+                },
+                "splitPercentage": 60
+            }
     
     return layout
 
