@@ -6,7 +6,7 @@ import time
 import tempfile
 import numpy as np
 from utils.data_processor import process_robot_data, validate_json_data
-from utils.foxglove_integration import create_event_timeline, get_available_topics
+from utils.foxglove_integration import create_event_timeline, get_available_topics, create_node_path_visualization
 
 # Set page configuration
 st.set_page_config(
@@ -140,8 +140,15 @@ if st.session_state.data is None:
         st.subheader("3D Visualization")
         st.markdown("""
         - Interactive 3D view of robot position and movement
-        - Foxglove integration for advanced visualization
-        - View coordinate frames and transformations
+        - Timeline visualization of robot events
+        - View coordinate frames and message flow
+        """)
+        
+        st.subheader("Node Path Visualization")
+        st.markdown("""
+        - Visualize the robot's "thinking pattern"
+        - Show flow between source and target nodes
+        - Understand the decision-making process
         """)
         
         st.subheader("Time Series Data")
@@ -181,7 +188,7 @@ if st.session_state.data is None:
     
 else:
     # Create tabs for different visualization aspects
-    tab1, tab2, tab3 = st.tabs(["3D Visualization", "Time Series Data", "Robot State"])
+    tab1, tab2, tab3, tab4 = st.tabs(["3D Visualization", "Node Path Visualization", "Time Series Data", "Robot State"])
     
     with tab1:
         st.subheader("Robot Visualization")
@@ -203,6 +210,37 @@ else:
             st.info("No data available for visualization. Try uploading a file with robot data.")
     
     with tab2:
+        st.subheader("Robot Thinking Pattern")
+        
+        # Create node path visualization
+        node_path_height = 600
+        
+        # Create node path visualization
+        node_path_fig = create_node_path_visualization(
+            data=st.session_state.data,
+            current_time=st.session_state.current_time,
+            height=node_path_height
+        )
+        
+        if node_path_fig:
+            st.pyplot(node_path_fig)
+            
+            # Add explanation of the visualization
+            st.markdown("""
+            ### Understanding the Node Path Visualization
+            
+            This visualization shows the robot's "thinking pattern" by displaying the flow between source nodes (left) and target nodes (right).
+            
+            - **Source Nodes**: Represent the origin points of events or commands (shown in green)
+            - **Target Nodes**: Represent the destination or affected components (shown in blue)
+            - **Connection Lines**: Show the flow of information between nodes, with color indicating the event type
+            
+            The visualization is arranged chronologically from top to bottom, with timestamps shown on each connection.
+            """)
+        else:
+            st.info("No node path data available for visualization. Try uploading a file with robot event data.")
+    
+    with tab3:
         st.subheader("Sensor Data Time Series")
         
         # Display time series data if available
@@ -292,7 +330,7 @@ else:
         else:
             st.info("No time series data available in the uploaded file")
     
-    with tab3:
+    with tab4:
         st.subheader("Robot State")
         
         # Display current robot state information

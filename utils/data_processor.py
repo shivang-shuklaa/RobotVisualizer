@@ -327,6 +327,136 @@ def extract_time_series(data):
     
     return time_series
 
+def extract_node_paths(data):
+    """
+    Extract node paths from the message data to visualize robot thinking patterns.
+    
+    Args:
+        data: The parsed JSON data
+        
+    Returns:
+        dict: Path information for visualization
+    """
+    # Initialize node path data structure
+    node_paths = {
+        "nodes": [],  # List of nodes with id, name, and type
+        "connections": []  # List of connections between nodes
+    }
+    
+    # Set to keep track of added nodes to avoid duplicates
+    added_node_ids = set()
+    
+    # Check if it's ROSBridge format (list of messages)
+    if isinstance(data, list) and len(data) > 0 and all(isinstance(item, dict) for item in data):
+        for msg_idx, msg_data in enumerate(data):
+            if "op" in msg_data and msg_data["op"] == "publish" and "topic" in msg_data and "msg" in msg_data:
+                msg_content = msg_data["msg"]
+                
+                # Skip if not a dictionary
+                if not isinstance(msg_content, dict):
+                    continue
+                
+                # Get topic
+                topic = msg_data["topic"]
+                
+                # Extract timestamp from header if available
+                timestamp = 0
+                if "header" in msg_content and "stamp" in msg_content["header"]:
+                    stamp = msg_content["header"]["stamp"]
+                    if "secs" in stamp and "nsecs" in stamp:
+                        timestamp = float(stamp["secs"]) + float(stamp["nsecs"]) / 1e9
+                
+                # Extract source and target information
+                source_id = None
+                target_id = None
+                source_name = ""
+                target_name = ""
+                event_type = 0
+                
+                # Extract source info
+                if "source" in msg_content and isinstance(msg_content["source"], dict):
+                    source = msg_content["source"]
+                    
+                    # Generate source ID
+                    if "id" in source:
+                        source_id = f"source_{source['id']}"
+                    elif "capability" in source:
+                        source_id = f"source_{source['capability']}"
+                    else:
+                        source_id = f"source_{msg_idx}"
+                    
+                    # Get source name
+                    if "capability" in source:
+                        source_name = source["capability"]
+                    elif "name" in source:
+                        source_name = source["name"]
+                    else:
+                        # Extract last part of topic as source name if nothing else available
+                        source_name = topic.split('/')[-1]
+                
+                # Extract target info
+                if "target" in msg_content and isinstance(msg_content["target"], dict):
+                    target = msg_content["target"]
+                    
+                    # Generate target ID
+                    if "id" in target:
+                        target_id = f"target_{target['id']}"
+                    elif "thread_id" in target:
+                        target_id = f"target_{target['thread_id']}"
+                    else:
+                        target_id = f"target_{msg_idx}"
+                    
+                    # Get target name
+                    if "text" in target:
+                        target_name = target["text"][:20]  # Truncate to avoid too long names
+                    elif "name" in target:
+                        target_name = target["name"]
+                    else:
+                        target_name = f"Target {msg_idx}"
+                    
+                    # Get event type
+                    if "event" in target:
+                        try:
+                            event_type = int(target["event"])
+                        except (ValueError, TypeError):
+                            # If conversion fails, default to 0 (Info)
+                            event_type = 0
+                
+                # If we have both source and target, add them and their connection
+                if source_id and target_id:
+                    # Add source node if not already added
+                    if source_id not in added_node_ids:
+                        node_paths["nodes"].append({
+                            "id": source_id,
+                            "name": source_name,
+                            "type": "source"
+                        })
+                        added_node_ids.add(source_id)
+                    
+                    # Add target node if not already added
+                    if target_id not in added_node_ids:
+                        node_paths["nodes"].append({
+                            "id": target_id,
+                            "name": target_name,
+                            "type": "target"
+                        })
+                        added_node_ids.add(target_id)
+                    
+                    # Add connection
+                    node_paths["connections"].append({
+                        "source": source_id,
+                        "target": target_id,
+                        "timestamp": timestamp,
+                        "event": event_type,
+                        "topic": topic
+                    })
+    
+    # Sort connections by timestamp
+    if node_paths["connections"]:
+        node_paths["connections"] = sorted(node_paths["connections"], key=lambda x: x["timestamp"])
+    
+    return node_paths
+
 def extract_robot_state(data):
     """
     Extract robot state information.
