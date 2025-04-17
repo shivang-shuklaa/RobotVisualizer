@@ -60,6 +60,9 @@ def process_robot_data(content):
     
     result = {}
     
+    # Store original messages for timeline visualization
+    result["messages"] = data if isinstance(data, list) else []
+    
     # Process time range if available
     result["time_range"] = extract_time_range(data)
     
