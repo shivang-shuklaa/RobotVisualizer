@@ -1,0 +1,1397 @@
+[
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956010,
+          "nsecs": 95891290
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/CapabilityGetRunner",
+        "provider": "std_capabilities/CapabilityGetRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": -1,
+        "text": "waiting for service: /capabilities/get_capability_specs",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956010,
+          "nsecs": 113144659
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/CapabilityGetRunner",
+        "provider": "std_capabilities/CapabilityGetRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "request generated",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956010,
+          "nsecs": 137410595
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/CapabilityGetRunner",
+        "provider": "std_capabilities/CapabilityGetRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "std_capabilities/PromptCapabilityRunner",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "on_success",
+        "element": "",
+        "event": 4,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956010,
+          "nsecs": 141443481
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/PromptPlanRunner",
+        "provider": "std_capabilities/PromptPlanRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "received new parameters",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956010,
+          "nsecs": 141553871
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/PromptPlanRunner",
+        "provider": "std_capabilities/PromptPlanRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "started execution",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956010,
+          "nsecs": 141594832
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/PromptPlanRunner",
+        "provider": "std_capabilities/PromptPlanRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "prompting with : Build a xml plan based on the availbale capabilities to acheive mentioned task of move to x:0.5 and y:1 positio...",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956010,
+          "nsecs": 141625794
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/PromptCapabilityRunner",
+        "provider": "std_capabilities/PromptCapabilityRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "Service request complete. Thread closing.",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956010,
+          "nsecs": 141681445
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/PromptPlanRunner",
+        "provider": "std_capabilities/PromptPlanRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "request generated",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 582402806
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/PromptPlanRunner",
+        "provider": "std_capabilities/PromptPlanRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "get result call succeeded",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 583496200
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/FabricSetPlanRunner",
+        "provider": "std_capabilities/FabricSetPlanRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "std_capabilities/FabricCompletionRunner",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "on_success",
+        "element": "",
+        "event": 4,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 583596329
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/FabricCompletionRunner",
+        "provider": "std_capabilities/FabricCompletionRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "started execution",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 583635157
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/FabricSetPlanRunner",
+        "provider": "std_capabilities/FabricSetPlanRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "Service request complete. Thread closing.",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 583646920
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/FabricCompletionRunner",
+        "provider": "std_capabilities/FabricCompletionRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "request generated",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 584145772
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/FabricCompletionRunner",
+        "provider": "std_capabilities/FabricCompletionRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "get result call succeeded",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 584213627
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/FabricCompletionRunner",
+        "provider": "std_capabilities/FabricCompletionRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "Service request complete. Thread closing.",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 607091856
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "",
+        "provider": "",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "stopping freed capability: std_capabilities/CapabilityGetRunner",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": -1
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 608333105
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/PromptCapabilityRunner",
+        "provider": "std_capabilities/PromptCapabilityRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": -1,
+        "text": "stopping runner",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 608381922
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "",
+        "provider": "",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "stopped capability: std_capabilities/PromptCapabilityRunner",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": -1
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 608412152
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "",
+        "provider": "",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "stopping freed capability: std_capabilities/PromptPlanRunner",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": -1
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 608768180
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/PromptPlanRunner",
+        "provider": "std_capabilities/PromptPlanRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": -1,
+        "text": "stopping runner",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 608812248
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "",
+        "provider": "",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "stopped capability: std_capabilities/PromptPlanRunner",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": -1
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 717761475
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/WaypointRunner",
+        "provider": "std_capabilities/WaypointRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": -1,
+        "text": "waiting for action: navigate_to_pose",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 717976323
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/WaypointRunner",
+        "provider": "std_capabilities/WaypointRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": -1,
+        "text": "connected with action: navigate_to_pose",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 717998968
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "",
+        "provider": "",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "started capability: std_capabilities/WaypointRunner with provider: std_capabilities/WaypointRunner",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": -1
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 722478909
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "",
+        "provider": "",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "started capability: std_capabilities/RobotPoseRunner with provider: std_capabilities/RobotPoseRunner",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": -1
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 724662192
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/PromptPoseRunner",
+        "provider": "std_capabilities/PromptPoseRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": -1,
+        "text": "waiting for service: /prompt_bridge/prompt",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 724922069
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/PromptPoseRunner",
+        "provider": "std_capabilities/PromptPoseRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": -1,
+        "text": "connected with service: /prompt_bridge/prompt",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 724950375
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "",
+        "provider": "",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "started capability: std_capabilities/PromptPoseRunner with provider: std_capabilities/PromptPoseRunner",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": -1
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 727480779
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/PromptOccupancyRunner",
+        "provider": "std_capabilities/PromptOccupancyRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": -1,
+        "text": "waiting for service: /prompt_bridge/prompt",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 727652330
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/PromptOccupancyRunner",
+        "provider": "std_capabilities/PromptOccupancyRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": -1,
+        "text": "connected with service: /prompt_bridge/prompt",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 727679925
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "",
+        "provider": "",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "started capability: std_capabilities/PromptOccupancyRunner with provider: std_capabilities/PromptOccupancyRunner",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": -1
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 732033855
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "",
+        "provider": "",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "Setting triggers for capability: std_capabilities/WaypointRunner",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": -1
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 732824578
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "",
+        "provider": "",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "Successfully set triggers for capability: std_capabilities/PromptPoseRunner",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": -1
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 733876431
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "",
+        "provider": "",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "Setting triggers for capability: std_capabilities/FabricCompletionRunner",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": -1
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 734524550
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/WaypointRunner",
+        "provider": "std_capabilities/WaypointRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "started execution",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 734542526
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/WaypointRunner",
+        "provider": "std_capabilities/WaypointRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "goal consist of x: 0.500000 and y: 1.000000",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 734608387
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/WaypointRunner",
+        "provider": "std_capabilities/WaypointRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "goal generated",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 734990096
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/WaypointRunner",
+        "provider": "std_capabilities/WaypointRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "goal sent. Waiting for acceptance.",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956013,
+          "nsecs": 735467546
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/WaypointRunner",
+        "provider": "std_capabilities/WaypointRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "goal accepted. Waiting for result",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956028,
+          "nsecs": 845946865
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/WaypointRunner",
+        "provider": "std_capabilities/WaypointRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "received result",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956028,
+          "nsecs": 847056126
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/PromptPoseRunner",
+        "provider": "std_capabilities/PromptPoseRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "information buffered",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956028,
+          "nsecs": 847075244
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/PromptPoseRunner",
+        "provider": "std_capabilities/PromptPoseRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "std_capabilities/PromptOccupancyRunner",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "on_success",
+        "element": "",
+        "event": 4,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956028,
+          "nsecs": 847093641
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/PromptOccupancyRunner",
+        "provider": "std_capabilities/PromptOccupancyRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "received new parameters",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956028,
+          "nsecs": 847168950
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/PromptOccupancyRunner",
+        "provider": "std_capabilities/PromptOccupancyRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "started execution",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  },
+  {
+    "op": "publish",
+    "topic": "/capabilities/events",
+    "msg": {
+      "header": {
+        "stamp": {
+          "secs": 1742956028,
+          "nsecs": 847204862
+        },
+        "frame_id": ""
+      },
+      "source": {
+        "capability": "std_capabilities/PromptPoseRunner",
+        "provider": "std_capabilities/PromptPoseRunner",
+        "parameters": ""
+      },
+      "target": {
+        "capability": "",
+        "provider": "",
+        "parameters": "",
+        "thread_id": 0,
+        "text": "Service request complete. Thread closing.",
+        "element": "",
+        "event": 0,
+        "server_ready": true,
+        "error": false,
+        "is_element": false,
+        "pid": 0
+      }
+    }
+  }
+]
