@@ -185,16 +185,21 @@ else:
     with tab1:
         st.subheader("Robot Visualization")
         
-        # Create Foxglove iframe for 3D visualization
-        foxglove_height = 600
-        iframe_html = create_foxglove_iframe(
-            file_path=st.session_state.temp_file_path,
+        # Create visualization using native Streamlit/matplotlib
+        timeline_height = 600
+        
+        # Create event timeline
+        timeline_fig = create_event_timeline(
+            data=st.session_state.data,
             selected_topics=st.session_state.selected_topics,
             current_time=st.session_state.current_time,
-            height=foxglove_height
+            height=timeline_height
         )
         
-        st.components.v1.html(iframe_html, height=foxglove_height)
+        if timeline_fig:
+            st.pyplot(timeline_fig)
+        else:
+            st.info("No data available for visualization. Try uploading a file with robot data.")
     
     with tab2:
         st.subheader("Sensor Data Time Series")

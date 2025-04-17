@@ -1,63 +1,158 @@
 import streamlit as st
+import pandas as pd
 import json
+import numpy as np
 import os
-import base64
 import uuid
+import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
+import matplotlib.dates as mdates
+from datetime import datetime, timedelta
 
-def create_foxglove_iframe(file_path, selected_topics=None, current_time=0, height=600):
+def create_event_timeline(data, selected_topics=None, current_time=None, height=600):
     """
-    Create an HTML iframe for Foxglove Studio visualization.
+    Create a timeline visualization of robot events using matplotlib.
     
     Args:
-        file_path: Path to the JSON file to visualize
+        data: Processed data dictionary containing messages
         selected_topics: List of topics to display
         current_time: Current playback time
-        height: Height of the iframe in pixels
+        height: Height of the visualization
         
     Returns:
-        str: HTML content for the iframe
+        Streamlit matplotlib figure
     """
-    # Base Foxglove Studio URL
-    foxglove_url = "https://studio.foxglove.dev/"
+    if "messages" not in data or not data["messages"]:
+        st.info("No message data available for visualization")
+        return None
     
-    # Create a unique data source ID
-    data_source_id = str(uuid.uuid4())
+    messages = data["messages"]
     
-    # Create a configuration for Foxglove
-    config = {
-        "layout": get_layout_config(selected_topics),
-        "playbackConfig": {
-            "speed": 1.0,
-            "position": current_time
-        },
-        "dataSources": [
-            {
-                "id": data_source_id,
-                "type": "file",
-                "name": "Local JSON File",
-                "fileType": "json",
-                "filePath": file_path
-            }
-        ]
+    # Extract timestamps and events
+    timestamps = []
+    event_types = []
+    capabilities = []
+    texts = []
+    
+    for msg in messages:
+        if "topic" in msg and (selected_topics is None or msg["topic"] in selected_topics):
+            if "msg" in msg and "header" in msg["msg"] and "stamp" in msg["msg"]["header"]:
+                # Extract timestamp
+                stamp = msg["msg"]["header"]["stamp"]
+                ts = float(stamp["secs"]) + float(stamp["nsecs"]) / 1e9
+                timestamps.append(ts)
+                
+                # Extract event type
+                event_type = 0
+                if "target" in msg["msg"] and "event" in msg["msg"]["target"]:
+                    event_type = msg["msg"]["target"]["event"]
+                event_types.append(event_type)
+                
+                # Extract capability
+                capability = ""
+                if "source" in msg["msg"] and "capability" in msg["msg"]["source"]:
+                    capability = msg["msg"]["source"]["capability"]
+                capabilities.append(capability)
+                
+                # Extract message text
+                text = ""
+                if "target" in msg["msg"] and "text" in msg["msg"]["target"]:
+                    text = msg["msg"]["target"]["text"]
+                texts.append(text)
+    
+    if not timestamps:
+        st.info("No timeline data available for the selected topics")
+        return None
+    
+    # Create a DataFrame for the events
+    df = pd.DataFrame({
+        'timestamp': timestamps,
+        'event_type': event_types,
+        'capability': capabilities,
+        'text': texts
+    })
+    
+    # Sort by timestamp
+    df = df.sort_values('timestamp')
+    
+    # Convert timestamps to datetime for plotting
+    min_time = df['timestamp'].min()
+    df['datetime'] = [datetime.fromtimestamp(ts) for ts in df['timestamp']]
+    
+    # Map event types to names and colors
+    event_map = {
+        0: ("Info", "#1f77b4"),  # Blue
+        1: ("Start", "#2ca02c"),  # Green
+        2: ("End", "#d62728"),    # Red
+        3: ("Error", "#ff7f0e"),  # Orange
+        4: ("Success", "#9467bd") # Purple
     }
     
-    # Encode the configuration as a URI component
-    config_json = json.dumps(config)
-    encoded_config = base64.b64encode(config_json.encode('utf-8')).decode('utf-8')
+    # Extract unique capabilities and assign colors
+    unique_capabilities = df['capability'].unique()
+    capability_colors = {}
     
-    # Create the iframe HTML
-    iframe_html = f"""
-    <iframe
-        src="{foxglove_url}?ds={encoded_config}"
-        width="100%"
-        height="{height}"
-        frameborder="0"
-        allow="autoplay; fullscreen"
-        style="border: 1px solid #ddd; border-radius: 4px;"
-    ></iframe>
-    """
+    # Generate a color map for capabilities
+    cmap = plt.cm.get_cmap('tab20', len(unique_capabilities))
     
-    return iframe_html
+    for i, cap in enumerate(unique_capabilities):
+        capability_colors[cap] = cmap(i)
+    
+    # Create the timeline plot
+    fig, ax = plt.subplots(figsize=(10, height/80))
+    
+    # Plot events as scatter points
+    for i, row in df.iterrows():
+        event_type = row['event_type']
+        event_name, event_color = event_map.get(event_type, ("Unknown", "#7f7f7f"))
+        
+        capability = row['capability']
+        cap_color = capability_colors.get(capability, (0.5, 0.5, 0.5, 1.0))
+        
+        # Plot point
+        ax.scatter(row['datetime'], i, color=event_color, s=80, zorder=3)
+        
+        # Add capability bar
+        if capability:
+            ax.hlines(i, row['datetime'] - timedelta(seconds=0.2), 
+                     row['datetime'] + timedelta(seconds=0.2), 
+                     color=cap_color, linewidth=8, alpha=0.6, zorder=2)
+    
+    # Add text labels for some points
+    for i, row in df.iterrows():
+        if i % 3 == 0:  # Only label every 3rd point to avoid overcrowding
+            ax.text(row['datetime'], i, f" {row['text'][:15]}...", 
+                   fontsize=8, verticalalignment='center')
+    
+    # Highlight current time if provided
+    if current_time is not None:
+        current_dt = datetime.fromtimestamp(current_time)
+        ax.axvline(current_dt, color='red', linestyle='--', linewidth=2)
+    
+    # Format the plot
+    ax.set_title("Robot Event Timeline")
+    ax.set_xlabel("Time")
+    ax.set_yticks([])
+    
+    # Format the x-axis with appropriate time units
+    time_range = df['timestamp'].max() - df['timestamp'].min()
+    if time_range < 60:  # Less than a minute
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S.%f'))
+    else:
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
+    
+    # Create legend for event types
+    legend_elements = []
+    for event_type, (name, color) in event_map.items():
+        if event_type in df['event_type'].values:
+            legend_elements.append(plt.Line2D([0], [0], marker='o', color='w', 
+                                            markerfacecolor=color, markersize=10, label=name))
+    
+    # Add the legend
+    ax.legend(handles=legend_elements, loc='upper right')
+    
+    plt.tight_layout()
+    return fig
 
 def get_layout_config(selected_topics=None):
     """
