@@ -195,20 +195,12 @@ def get_available_topics(data):
     Returns:
         list: Available topics for visualization
     """
-    topics = []
-    
-    # Get topics from metadata
-    if "topic_metadata" in data:
-        topics.extend(data["topic_metadata"].keys())
-    
-    # Get topics from time series data
-    if "time_series" in data:
-        topics.extend(data["time_series"].keys())
-    
-    # Remove duplicates and sort
-    topics = sorted(list(set(topics)))
-    
-    return topics
+    topics = set()
+    for entry in data.get("events", []):
+        topic = entry.get("topic")
+        if topic:
+            topics.add(topic)
+    return list(topics)
 
 def create_json_viewer(data, selected_topics=None, current_time=None, height=600):
     """
@@ -227,13 +219,7 @@ def create_json_viewer(data, selected_topics=None, current_time=None, height=600
     st.json(data)
     return None
 
-def get_available_topics(data):
-    topics = set()
-    for entry in data.get("events", []):
-        topic = entry.get("topic")
-        if topic:
-            topics.add(topic)
-    return list(topics)
+
 
 def create_node_path_visualization(data, current_time=None, height=600):
     """
@@ -250,9 +236,11 @@ def create_node_path_visualization(data, current_time=None, height=600):
     from pyvis.network import Network
     import networkx as nx
     import streamlit.components.v1 as components
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as mpatches
     import time
     import json
-    
+
     # Create a NetworkX directed graph
     G = nx.DiGraph()
     valid_connections = 0
@@ -349,7 +337,7 @@ def create_node_path_visualization(data, current_time=None, height=600):
 
     # Save to HTML and show in Streamlit
     path = f"/tmp/graph_{time.time()}.html"
-    net.show(path)
+    net.write_html(path, notebook=False)
     with open(path, "r", encoding="utf-8") as f:
         html = f.read()
     components.html(html, height=height)
