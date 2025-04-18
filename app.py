@@ -145,26 +145,21 @@ if st.session_state.data is None:
         - Understand complex decision-making processes
         """)
         
-        st.subheader("Event Timeline")
+        st.subheader("JSON Data Viewer")
         st.markdown("""
-        - Chronological view of robot events over time
-        - Track capability activations and state changes
-        - Identify patterns in robot behavior
-        """)
-        
-        st.subheader("Time Series Data")
-        st.markdown("""
-        - Plot sensor readings and state changes over time
-        - Filter specific topics for detailed analysis
-        - Compare multiple data streams
+        - Inspect the raw data structure from the uploaded file
+        - Browse through the JSON object hierarchy
+        - Filter data based on selected topics
+        - Look for patterns in the robot data
         """)
     
     with col2:
-        st.subheader("Robot State")
+        st.subheader("Interactive Features")
         st.markdown("""
-        - View current robot state at any point in time
-        - Position and orientation information
-        - Joint states and system status
+        - Click and drag to move around the visualization
+        - Zoom in/out to focus on specific areas
+        - Select nodes to highlight connections
+        - Find shortest paths between capabilities
         """)
         
         st.subheader("Playback Controls")
@@ -189,7 +184,7 @@ if st.session_state.data is None:
     
 else:
     # Create tabs for different visualization aspects
-    tab1, tab2, tab3, tab4 = st.tabs(["Node Path Visualization", "Timeline Events", "Time Series Data", "Robot State"])
+    tab1, tab2 = st.tabs(["Node Path Visualization", "JSON Data Viewer"])
     
     with tab1:
         st.subheader("Robot Thinking Pattern")
@@ -223,7 +218,7 @@ else:
             st.info("No node path data available for visualization. Try uploading a file with robot event data.")
     
     with tab2:
-        st.subheader("Event Timeline")
+        st.subheader("Input JSON Data")
         
         # Create visualization using native Streamlit/matplotlib
         timeline_height = 600
@@ -239,193 +234,20 @@ else:
         if timeline_fig:
             st.pyplot(timeline_fig)
             
-            # Add explanation of the visualization
+            # Add explanation of the JSON data viewer
             st.markdown("""
-            ### Understanding the Event Timeline
+            ### Understanding the JSON Data
             
-            This visualization shows robot events over time as a chronological timeline.
+            This viewer shows the raw JSON data from the uploaded file.
             
-            - **Event Types**: Different colors represent different event types (Info, Start, End, Error, Success)
-            - **Capabilities**: Horizontal bars show which capability was involved in each event
-            - **Messages**: Text messages provide additional context for events
+            - **Browse**: Expand/collapse sections to explore the data structure
+            - **Search**: Use your browser's search function to find specific values
+            - **Filter**: Data is filtered based on your selected topics in the sidebar
             
-            The timeline helps identify patterns and sequences in robot operations.
+            The JSON view helps inspect the exact data structure and values.
             """)
         else:
-            st.info("No timeline data available for visualization. Try uploading a file with robot event data.")
-    
-    with tab3:
-        st.subheader("Sensor Data Time Series")
-        
-        # Display time series data if available
-        if "time_series" in st.session_state.data:
-            time_series_data = st.session_state.data["time_series"]
-            
-            # Filter for selected topics
-            filtered_data = {topic: data for topic, data in time_series_data.items() 
-                            if topic in st.session_state.selected_topics}
-            
-            if filtered_data:
-                # Convert to DataFrame for easier plotting
-                for topic, values in filtered_data.items():
-                    df = pd.DataFrame(values)
-                    if not df.empty:
-                        st.subheader(f"{topic}")
-                        
-                        # Make sure all values are finite before plotting
-                        for col in df.columns:
-                            # Replace non-finite values with NaN so pandas can handle them
-                            if df[col].dtype in ['float', 'int']:
-                                # Use numpy's isinf instead of pandas
-                                import numpy as np
-                                df[col] = df[col].apply(lambda x: float('nan') if not pd.api.types.is_number(x) or pd.isna(x) or (isinstance(x, float) and np.isinf(x)) else x)
-                        
-                        # Choose an appropriate index for plotting
-                        if 'index' in df.columns:
-                            # Filter out any NaN values and reset index to avoid gaps
-                            plotting_df = df.dropna(subset=['index']).copy()
-                            if not plotting_df.empty:
-                                # Use sequential numbers if there are any issues with the index
-                                plotting_df['plot_index'] = range(len(plotting_df))
-                                plotting_df = plotting_df.set_index('plot_index')
-                                
-                                # Select only finite numeric columns
-                                numeric_cols = plotting_df.select_dtypes(include=['float64', 'float32', 'int64', 'int32']).columns
-                                # Exclude the original index column
-                                if 'index' in numeric_cols:
-                                    numeric_cols = [col for col in numeric_cols if col != 'index']
-                                
-                                if len(numeric_cols) > 0:
-                                    st.line_chart(plotting_df[numeric_cols])
-                                    
-                                    # Provide additional info about the data
-                                    with st.expander("Data Statistics"):
-                                        st.write(plotting_df[numeric_cols].describe())
-                                else:
-                                    st.info(f"No valid numeric data to plot for {topic}")
-                            else:
-                                st.info(f"No valid data points for {topic}")
-                        elif 'time' in df.columns:
-                            # Filter out any NaN values and reset index to avoid gaps
-                            plotting_df = df.dropna(subset=['time']).copy()
-                            if not plotting_df.empty:
-                                # Sort by time and use sequential indices for plotting
-                                plotting_df = plotting_df.sort_values('time')
-                                plotting_df['plot_index'] = range(len(plotting_df))
-                                plotting_df = plotting_df.set_index('plot_index')
-                                
-                                # Select only finite numeric columns
-                                numeric_cols = plotting_df.select_dtypes(include=['float64', 'float32', 'int64', 'int32']).columns
-                                
-                                if len(numeric_cols) > 0:
-                                    st.line_chart(plotting_df[numeric_cols])
-                                    
-                                    # Provide additional info about the data
-                                    with st.expander("Data Statistics"):
-                                        st.write(plotting_df[numeric_cols].describe())
-                                else:
-                                    st.info(f"No valid numeric data to plot for {topic}")
-                            else:
-                                st.info(f"No valid data points for {topic}")
-                        else:
-                            # Create a simple sequential index for plotting
-                            df['plot_index'] = range(len(df))
-                            plotting_df = df.set_index('plot_index')
-                            
-                            # Select only numeric columns
-                            numeric_cols = plotting_df.select_dtypes(include=['float64', 'float32', 'int64', 'int32']).columns
-                            
-                            if len(numeric_cols) > 0:
-                                st.line_chart(plotting_df[numeric_cols])
-                            else:
-                                st.info(f"No numeric data to plot for {topic}")
-            else:
-                st.info("No time series data available for selected topics")
-        else:
-            st.info("No time series data available in the uploaded file")
-    
-    with tab4:
-        st.subheader("Robot State")
-        
-        # Display current robot state information
-        if "robot_state" in st.session_state.data and st.session_state.current_time is not None:
-            state_data = st.session_state.data["robot_state"]
-            
-            # Find the closest time point to current_time
-            if hasattr(state_data, "get"):
-                current_state = state_data.get(str(st.session_state.current_time), state_data.get(list(state_data.keys())[0], {}))
-                
-                # Display state data in columns
-                if current_state:
-                    cols = st.columns(3)
-                    col_index = 0
-                    
-                    # Position data
-                    if "position" in current_state:
-                        with cols[col_index % 3]:
-                            st.subheader("Position")
-                            pos = current_state["position"]
-                            st.write(f"X: {pos.get('x', 0):.3f}")
-                            st.write(f"Y: {pos.get('y', 0):.3f}")
-                            st.write(f"Z: {pos.get('z', 0):.3f}")
-                        col_index += 1
-                    
-                    # Orientation data
-                    if "orientation" in current_state:
-                        with cols[col_index % 3]:
-                            st.subheader("Orientation")
-                            orient = current_state["orientation"]
-                            st.write(f"X: {orient.get('x', 0):.3f}")
-                            st.write(f"Y: {orient.get('y', 0):.3f}")
-                            st.write(f"Z: {orient.get('z', 0):.3f}")
-                            st.write(f"W: {orient.get('w', 0):.3f}")
-                        col_index += 1
-                    
-                    # Joint states data
-                    if "joints" in current_state:
-                        with cols[col_index % 3]:
-                            st.subheader("Joint States")
-                            for joint_name, joint_value in current_state["joints"].items():
-                                st.write(f"{joint_name}: {joint_value:.3f}")
-                        col_index += 1
-                    
-                    # Capability data
-                    if "capability" in current_state:
-                        with cols[col_index % 3]:
-                            st.subheader("Capability")
-                            st.write(current_state["capability"])
-                        col_index += 1
-                    
-                    # Status information
-                    if "status" in current_state:
-                        with cols[col_index % 3]:
-                            st.subheader("Status")
-                            st.write(current_state["status"])
-                        col_index += 1
-                    
-                    # Event information
-                    if "event" in current_state:
-                        with cols[col_index % 3]:
-                            st.subheader("Event")
-                            event_value = current_state["event"]
-                            event_name = "Unknown"
-                            # Map event codes to names
-                            event_map = {
-                                0: "Info",
-                                1: "Start",
-                                2: "End",
-                                3: "Error",
-                                4: "Success"
-                            }
-                            if event_value in event_map:
-                                event_name = event_map[event_value]
-                            st.write(f"{event_name} ({event_value})")
-                else:
-                    st.info("No state data available for the current time point")
-            else:
-                st.info("Robot state data is not in the expected format")
-        else:
-            st.info("No robot state data available in the uploaded file")
+            st.info("No JSON data available for viewing. Try uploading a file with robot data.")
 
 # Clean up temporary file when the app is closed
 if hasattr(st, 'on_session_end'):
