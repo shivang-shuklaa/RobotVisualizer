@@ -157,29 +157,24 @@ else:
     with tab2:
         st.subheader("Input JSON Data")
         json_height = 600
-        timeline_fig = create_event_timeline(
+        create_json_viewer(
             data=st.session_state.data,
             selected_topics=st.session_state.selected_topics,
             current_time=st.session_state.current_time,
             height=json_height
         )
-        
-        if timeline_fig:
-            st.pyplot(timeline_fig)
-            
-            st.markdown("""
-            ### Understanding the JSON Data
 
-            This viewer shows the raw JSON data from the uploaded file.
+        st.markdown("""
+        ### Understanding the JSON Data
 
-            - **Browse**: Expand/collapse sections to explore the data structure
-            - **Search**: Use your browser's search function to find specific values
-            - **Filter**: Data is filtered based on your selected topics in the sidebar
+        This viewer shows the raw JSON data from the uploaded file.
 
-            The JSON view helps inspect the exact data structure and values.
-            """)
-        else:
-            st.info("No JSON data available for viewing. Try uploading a file with robot data.")
+        - **Browse**: Expand/collapse sections to explore the data structure
+        - **Search**: Use your browser's search function to find specific values
+        - **Filter**: Data is filtered based on your selected topics in the sidebar
+
+        The JSON view helps inspect the exact data structure and values.
+        """)
 
 # Playback animation
 if st.session_state.is_playing:
