@@ -15,7 +15,7 @@ import streamlit.components.v1 as components
 
 def create_event_timeline(data, selected_topics=None, current_time=None, height=600):
     """
-    Create a timeline visualization of robot events using matplotlib.
+    Display the uploaded JSON data in a Streamlit JSON viewer.
     
     Args:
         data: Processed data dictionary containing messages
@@ -24,135 +24,37 @@ def create_event_timeline(data, selected_topics=None, current_time=None, height=
         height: Height of the visualization
         
     Returns:
-        Streamlit matplotlib figure
+        None - Displays JSON data directly in Streamlit
     """
+    st.subheader("Uploaded JSON Data Viewer")
+    
+    # Check if we have data
     if not data:
-        st.warning("No data available for visualization")
+        st.warning("No data available for viewing")
         return None
     
-    # Check if we have traditional messages format
-    if "messages" in data and data["messages"]:
-        events = []
-        
-        # Process from ROS Bridge messages
-        for msg in data["messages"]:
-            if "topic" in msg and (selected_topics is None or msg["topic"] in selected_topics):
-                if "msg" in msg and isinstance(msg["msg"], dict):
-                    event = {}
-                    
-                    # Extract timestamp
-                    if "header" in msg["msg"] and "stamp" in msg["msg"]["header"]:
-                        stamp = msg["msg"]["header"]["stamp"]
-                        ts = float(stamp["secs"]) + float(stamp["nsecs"]) / 1e9
-                        event["header"] = {"stamp": {"secs": ts}}
-                    
-                    # Extract event type
-                    if "target" in msg["msg"] and "event" in msg["msg"]["target"]:
-                        event["event"] = msg["msg"]["target"]["event"]
-                    
-                    # Extract capability
-                    if "source" in msg["msg"] and "capability" in msg["msg"]["source"]:
-                        event["source"] = {"capability": msg["msg"]["source"]["capability"]}
-                    
-                    # Extract topic
-                    event["topic"] = msg["topic"]
-                    
-                    # Add to events list if we have enough data
-                    if "header" in event and "source" in event:
-                        events.append(event)
-        
-        data["events"] = events
+    # Display the JSON data for easy inspection
+    try:
+        # Filter by topics if specified
+        if selected_topics and "messages" in data:
+            filtered_data = {
+                "messages": [
+                    msg for msg in data.get("messages", [])
+                    if "topic" in msg and msg["topic"] in selected_topics
+                ]
+            }
+            if filtered_data["messages"]:
+                st.json(filtered_data)
+            else:
+                st.info("No messages match the selected topics")
+                st.json(data)  # Show all data as fallback
+        else:
+            # Show all data
+            st.json(data)
+    except Exception as e:
+        st.error(f"Error displaying JSON data: {str(e)}")
     
-    # Return if we don't have any events
-    if "events" not in data or not data["events"]:
-        st.warning("No event data available.")
-        return None
-    
-    # Filter events by selected topics
-    filtered_events = data["events"]
-    if selected_topics:
-        filtered_events = [e for e in data["events"] if e.get("topic") in selected_topics]
-    
-    if not filtered_events:
-        st.info("No matching events for selected topics.")
-        return None
-    
-    # Create the figure
-    fig, ax = plt.subplots(figsize=(12, height/100), facecolor='#1e1e1e')
-    ax.set_facecolor('#1e1e1e')  # Dark background for the plot area
-    
-    # Define colors for event types
-    colors = {
-        0: "#3498db",  # Info (Blue)
-        1: "#2ecc71",  # Start (Green)
-        2: "#e74c3c",  # End (Red) 
-        3: "#f39c12",  # Error (Orange)
-        4: "#9b59b6"   # Success (Purple)
-    }
-    
-    # Event type names for legend
-    legend = {
-        0: "Info",
-        1: "Start",
-        2: "End",
-        3: "Error",
-        4: "Success"
-    }
-    
-    # Store labels for y-axis
-    y_labels = []
-    y_positions = []
-    
-    # Plot events
-    for idx, event in enumerate(filtered_events):
-        # Extract event data
-        stamp = event.get("header", {}).get("stamp", {}).get("secs", 0)
-        capability = event.get("source", {}).get("capability", "Unknown")
-        event_type = event.get("event", 0)
-        
-        # Use a horizontal bar to represent event
-        ax.barh(idx, 0.8, left=stamp, height=0.6, 
-                color=colors.get(event_type, "gray"), 
-                alpha=0.8, edgecolor='white', linewidth=0.5)
-        
-        # Store label information
-        y_labels.append(capability.split('/')[-1] if '/' in capability else capability)  # Show only last part of capability name
-        y_positions.append(idx)
-    
-    # Set y-axis ticks and labels
-    ax.set_yticks(y_positions)
-    ax.set_yticklabels(y_labels, fontsize=9, color='white')
-    
-    # Set labels and title with white color for dark theme
-    ax.set_xlabel("Time (secs)", color='white', fontsize=10)
-    ax.set_title("Robot Event Timeline", color='white', fontsize=14, pad=10)
-    
-    # Set grid for better readability
-    ax.grid(True, linestyle='--', alpha=0.3, color='gray')
-    
-    # Style the axes for dark theme
-    ax.spines['bottom'].set_color('white')
-    ax.spines['top'].set_color('white') 
-    ax.spines['right'].set_color('white')
-    ax.spines['left'].set_color('white')
-    ax.tick_params(axis='x', colors='white')
-    ax.tick_params(axis='y', colors='white')
-    
-    # Add legend
-    patches = [mpatches.Patch(color=color, label=legend[code]) 
-               for code, color in colors.items() if code in [e.get("event", 0) for e in filtered_events]]
-    ax.legend(handles=patches, loc='upper right', framealpha=0.7, 
-              facecolor='#1e1e1e', edgecolor='white', fontsize=9, labelcolor='white')
-    
-    # Highlight current time if provided
-    if current_time is not None:
-        ax.axvline(current_time, color='red', linestyle='--', linewidth=2, alpha=0.7)
-        ax.text(current_time, len(filtered_events) * 0.95, "Current", 
-                color='red', fontsize=9, ha='right', va='top',
-                bbox=dict(facecolor='#1e1e1e', alpha=0.7, edgecolor='red', boxstyle='round'))
-    
-    plt.tight_layout()
-    return fig
+    return None
 
 def get_layout_config(selected_topics=None):
     """
