@@ -455,7 +455,7 @@ def create_node_path_visualization(data, current_time=None, height=600):
     # Create PyVis network
     net = Network(height=f"{height}px", width="100%", directed=True, notebook=False)
     
-    # Set physics options for better layout
+    # Set physics options for better layout with dark background color (#36393e)
     net.set_options("""
     {
       "physics": {
@@ -482,7 +482,21 @@ def create_node_path_visualization(data, current_time=None, height=600):
       "interaction": {
         "navigationButtons": true,
         "keyboard": true
-      }
+      },
+      "configure": {
+        "enabled": false
+      },
+      "nodes": {
+        "font": {
+          "color": "#ffffff"
+        }
+      },
+      "edges": {
+        "font": {
+          "color": "#ffffff"
+        }
+      },
+      "backgroundColor": "#36393e"
     }
     """)
     
@@ -496,11 +510,12 @@ def create_node_path_visualization(data, current_time=None, height=600):
         # Check if this node is a capability
         is_capability = any(info["name"] == node_id for info in capability_nodes.values())
         
-        # Set node properties based on type
+        # Set node properties based on type with lighter font color for dark background
         if is_capability:
             node["color"] = "#e74c3c"  # Red for capabilities
             node["size"] = 25
-            node["font"] = {"size": 14, "color": "black"}
+            node["font"] = {"size": 14, "color": "white"}
+            node["borderWidth"] = 2
             
             # Highlight CapabilityGetRunner specifically
             if "CapabilityGetRunner" in node_id:
@@ -511,7 +526,7 @@ def create_node_path_visualization(data, current_time=None, height=600):
         else:
             node["color"] = "#3498db"  # Blue for messages
             node["size"] = 20
-            node["font"] = {"size": 12, "color": "black"}
+            node["font"] = {"size": 12, "color": "white"}
         
         # Highlight nodes in the shortest path
         if shortest_path and node_id in shortest_path:
