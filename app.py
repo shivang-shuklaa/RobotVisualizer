@@ -249,6 +249,12 @@ else:
         else:
             st.info("No JSON data available for viewing. Try uploading a file with robot data.")
 
+# Add playback animation functionality
+if st.session_state.is_playing:
+    time.sleep(0.1)
+    st.session_state.current_time += st.session_state.playback_speed
+    st.rerun()  # Using st.rerun() instead of experimental_rerun
+
 # Clean up temporary file when the app is closed
 if hasattr(st, 'on_session_end'):
     @st.on_session_end
