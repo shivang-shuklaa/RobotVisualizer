@@ -6,63 +6,50 @@ import time
 import tempfile
 import numpy as np
 from utils.data_processor import process_robot_data, validate_json_data
-from utils.foxglove_integration import create_event_timeline, get_available_topics, create_node_path_visualization, create_json_viewer
+from utils.foxglove_integration import create_event_timeline, get_available_topics, create_node_path_visualization
 
 # Set page configuration
 st.set_page_config(
     page_title="Robot Data Visualizer",
     page_icon="🤖",
     layout="wide",
-    initial_sidebar_state="expanded"
 )
 
-# Apply dark mode styling via Streamlit theme override
+# Add custom CSS for better dropdown styling
 st.markdown("""
-    <style>
-        body, .stApp, .block-container {
-            background-color: #1e1e1e;
-            color: #f0f0f0;
-        }
-        .st-c8, .st-dv, .st-dw, .st-dx, .st-cf, .st-eh {
-            background-color: #2c2c2c !important;
-        }
-        .stButton>button {
-            background-color: #4CAF50;
-            color: white;
-        }
-        .stTextInput>div>div>input {
-            background-color: #2c2c2c;
-            color: white;
-        }
-        .stSelectbox>div>div>div>input, .css-1wa3eu0-placeholder {
-            background-color: #2c2c2c;
-            color: white !important;
-            white-space: normal !important;
-            overflow: visible !important;
-        }
-        .css-1uccc91-singleValue {
-            white-space: normal !important;
-            overflow: visible !important;
-        }
-        .stSelectbox div[role="listbox"] span {
-            white-space: normal;
-            word-wrap: break-word;
-        }
-        
-        /* Prevent text truncation with ellipsis (...) */
-        div[data-baseweb="select"] span {
-            text-overflow: unset !important;
-            white-space: normal !important;
-            overflow: visible !important;
-        }
+<style>
+/* Make dropdowns wider for better text display */
+.stSelectbox {
+    width: 100%;
+    min-width: 100%;
+}
 
-        /* Make the dropdown options display full text */
-        div[role="listbox"] div {
-            text-overflow: unset !important;
-            white-space: normal !important;
-            overflow: visible !important;
-        }
-    </style>
+div[data-baseweb="select"] > div {
+    min-width: 100%;
+}
+
+/* Prevent text truncation with ellipsis (...) */
+div[data-baseweb="select"] span {
+    text-overflow: unset !important;
+    white-space: normal !important;
+    overflow: visible !important;
+}
+
+/* Make the dropdown options display full text */
+div[role="listbox"] div {
+    text-overflow: unset !important;
+    white-space: normal !important;
+    overflow: visible !important;
+}
+
+/* Improve dropdown readability and prevent truncation */
+.stSelectbox div[role="listbox"] span {
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+}
+</style>
 """, unsafe_allow_html=True)
 
 # Main title
@@ -94,61 +81,95 @@ if "temp_file_path" not in st.session_state:
 # Process uploaded file
 if uploaded_file is not None:
     try:
+        # Read and validate the uploaded JSON file
         content = uploaded_file.read()
         if validate_json_data(content):
+            # Save to temporary file for Foxglove to access
             with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as tmp_file:
                 tmp_file.write(content)
                 st.session_state.temp_file_path = tmp_file.name
 
+            # Process the data for visualization
             st.session_state.data = process_robot_data(content)
+            
+            # Extract available topics
             st.session_state.topics = get_available_topics(st.session_state.data)
+            
+            # Initialize selected topics if empty
             if not st.session_state.selected_topics and st.session_state.topics:
                 st.session_state.selected_topics = st.session_state.topics[:min(3, len(st.session_state.topics))]
-
+            
             st.sidebar.success("File successfully loaded!")
         else:
             st.sidebar.error("Invalid robot data format. Please upload a valid JSON file.")
     except Exception as e:
         st.sidebar.error(f"Error processing file: {str(e)}")
 
-# Sidebar UI for filters and playback
+# Display topics and filters if data is loaded
 if st.session_state.data is not None:
+    # Topic selection
     st.sidebar.subheader("Data Streams")
     st.session_state.selected_topics = st.sidebar.multiselect(
         "Select topics to visualize",
         options=st.session_state.topics,
         default=st.session_state.selected_topics
     )
-
+    
+    # Playback controls
     st.sidebar.subheader("Playback Controls")
-    st.session_state.playback_speed = st.sidebar.slider("Playback Speed", 0.1, 2.0, st.session_state.playback_speed, 0.1)
+    
+    # Playback speed
+    st.session_state.playback_speed = st.sidebar.slider(
+        "Playback Speed",
+        min_value=0.1,
+        max_value=2.0,
+        value=st.session_state.playback_speed,
+        step=0.1
+    )
+    
+    # Play/Pause button
     col1, col2 = st.sidebar.columns(2)
     with col1:
         if st.button("Play" if not st.session_state.is_playing else "Pause"):
             st.session_state.is_playing = not st.session_state.is_playing
+    
+    # Reset button
     with col2:
         if st.button("Reset"):
             st.session_state.current_time = 0
             st.session_state.is_playing = False
-
+    
+    # Time slider
     if "time_range" in st.session_state.data:
         min_time, max_time = st.session_state.data["time_range"]
+        # Convert all values to float to avoid type mismatch
+        min_time_float = float(min_time)
+        max_time_float = float(max_time)
+        current_time_float = float(st.session_state.current_time)
+        
         st.session_state.current_time = st.sidebar.slider(
             "Timeline",
-            float(min_time), float(max_time), float(st.session_state.current_time), step=0.1
+            min_value=min_time_float,
+            max_value=max_time_float,
+            value=current_time_float,
+            step=float(0.1)  # Explicitly convert to float
         )
 
-# Main interface
+# Main content area
 if st.session_state.data is None:
+    # Display instructions when no data is loaded
     st.title("Robot Path Visualization Tool")
-    st.markdown("""
-    This tool allows you to visualize and analyze robot data from JSON files.
-    - Upload a file from the sidebar.
-    - Visualize node paths and system behaviors.
-    """)
     
-    # Getting started guide
-    st.markdown("## Getting Started")
+    st.markdown("""
+    This tool allows you to visualize and analyze robot data from JSON files, with a focus on ROS (Robot Operating System) messages.
+    
+    ## Getting Started
+    1. Upload your JSON robot data file using the sidebar
+    2. The app will automatically process and extract relevant data
+    3. Use the visualization tabs to explore different aspects of the data
+    
+    ## Visualization Features
+    """)
     
     col1, col2 = st.columns(2)
     
@@ -197,62 +218,81 @@ if st.session_state.data is None:
     
     **Start by uploading a JSON file using the file uploader in the sidebar!**
     """)
+    
 else:
+    # Create tabs for different visualization aspects
     tab1, tab2 = st.tabs(["Node Path Visualization", "JSON Data Viewer"])
-
+    
     with tab1:
         st.subheader("Robot Thinking Pattern")
+        
+        # Create node path visualization
         node_path_height = 600
+        
+        # Create node path visualization
         node_path_fig = create_node_path_visualization(
             data=st.session_state.data,
             current_time=st.session_state.current_time,
             height=node_path_height
         )
+        
         if node_path_fig:
             st.pyplot(node_path_fig)
+            
+            # Add explanation of the visualization
             st.markdown("""
             ### Understanding the Node Path Visualization
-
+            
             This visualization shows the robot's "thinking pattern" by displaying the flow between source nodes (left) and target nodes (right).
-
+            
             - **Source Nodes**: Represent the origin points of events or commands (shown in green)
             - **Target Nodes**: Represent the destination or affected components (shown in blue)
             - **Connection Lines**: Show the flow of information between nodes, with color indicating the event type
-
+            
             The visualization is arranged chronologically from top to bottom, with timestamps shown on each connection.
             """)
         else:
             st.info("No node path data available for visualization. Try uploading a file with robot event data.")
-
+    
     with tab2:
         st.subheader("Input JSON Data")
-        json_height = 600
-        create_json_viewer(
+        
+        # Create visualization using native Streamlit/matplotlib
+        timeline_height = 600
+        
+        # Create event timeline
+        timeline_fig = create_event_timeline(
             data=st.session_state.data,
             selected_topics=st.session_state.selected_topics,
             current_time=st.session_state.current_time,
-            height=json_height
+            height=timeline_height
         )
+        
+        if timeline_fig:
+            st.pyplot(timeline_fig)
+            
+            # Add explanation of the JSON data viewer
+            st.markdown("""
+            ### Understanding the JSON Data
+            
+            This viewer shows the raw JSON data from the uploaded file.
+            
+            - **Browse**: Expand/collapse sections to explore the data structure
+            - **Search**: Use your browser's search function to find specific values
+            - **Filter**: Data is filtered based on your selected topics in the sidebar
+            
+            The JSON view helps inspect the exact data structure and values.
+            """)
+        else:
+            st.info("No JSON data available for viewing. Try uploading a file with robot data.")
 
-        st.markdown("""
-        ### Understanding the JSON Data
-
-        This viewer shows the raw JSON data from the uploaded file.
-
-        - **Browse**: Expand/collapse sections to explore the data structure
-        - **Search**: Use your browser's search function to find specific values
-        - **Filter**: Data is filtered based on your selected topics in the sidebar
-
-        The JSON view helps inspect the exact data structure and values.
-        """)
-
-# Playback animation
+# Add playback animation functionality
 if st.session_state.is_playing:
     time.sleep(0.1)
     st.session_state.current_time += st.session_state.playback_speed
-    st.rerun()
+    st.rerun()  # Using st.rerun() instead of experimental_rerun
 
-# Cleanup temporary file
+# Clean up temporary file when the app is closed
 if hasattr(st, 'on_session_end'):
     @st.on_session_end
     def cleanup():

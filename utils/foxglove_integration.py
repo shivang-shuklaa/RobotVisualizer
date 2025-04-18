@@ -516,51 +516,6 @@ def get_event_color(event_type):
     }
     return event_colors.get(event_type, "#7f7f7f")
 
-def create_json_viewer(data, selected_topics=None, current_time=None, height=600):
-    """
-    Display the uploaded JSON data in a Streamlit JSON viewer.
-    
-    Args:
-        data: Processed data dictionary containing messages
-        selected_topics: List of topics to display
-        current_time: Current playback time
-        height: Height of the visualization
-        
-    Returns:
-        None - Displays JSON data directly in Streamlit
-    """
-    if not data:
-        st.info("No JSON data available for viewing. Try uploading a file with robot data.")
-        return
-    
-    # Filter data based on selected topics if specified
-    filtered_data = data
-    if selected_topics and 'messages' in data:
-        filtered_data = {
-            **data,
-            'messages': [msg for msg in data['messages'] if msg.get('topic') in selected_topics]
-        }
-    
-    # Find messages that are active at the current time if specified
-    if current_time is not None and 'messages' in filtered_data:
-        current_messages = [
-            msg for msg in filtered_data['messages'] 
-            if current_time >= float(msg.get('timestamp', 0))
-        ]
-        
-        # Show the most recent messages first
-        current_messages.sort(key=lambda x: float(x.get('timestamp', 0)), reverse=True)
-        
-        if current_messages:
-            with st.expander("Current Messages", expanded=True):
-                st.json(current_messages[:10])  # Show the 10 most recent messages
-    
-    # Display the complete JSON data
-    with st.expander("Complete JSON Data", expanded=False):
-        st.json(filtered_data)
-    
-    return filtered_data
-
 def update_foxglove_state(iframe_id, current_time, selected_topics=None, playback_speed=1.0):
     """
     Generate JavaScript to update the Foxglove iframe state.
