@@ -6,7 +6,7 @@ import time
 import tempfile
 import numpy as np
 from utils.data_processor import process_robot_data, validate_json_data
-from utils.node_visualization import create_node_path_visualization, create_json_viewer, get_available_topics
+from utils.foxglove_integration import create_event_timeline, get_available_topics, create_node_path_visualization
 
 # Set page configuration
 st.set_page_config(
@@ -193,23 +193,29 @@ else:
         node_path_height = 600
         
         # Create node path visualization
-        create_node_path_visualization(
+        node_path_fig = create_node_path_visualization(
             data=st.session_state.data,
             current_time=st.session_state.current_time,
             height=node_path_height
         )
         
-        # Add explanation of the visualization
-        st.markdown("""
-        ### Understanding the Node Path Visualization
-        
-        This visualization shows the robot's "thinking pattern" by displaying the flow between source nodes (left) and target nodes (right).
-        
-        - **Source Nodes**: Represent the origin points of events or commands
-        - **Target Nodes**: Represent the destination or affected components
-        - **Connection Lines**: Show the flow of information between nodes
-        - **Path Highlighting**: Use the dropdown menus to find and highlight the shortest path between nodes
-        """)
+        if node_path_fig:
+            st.pyplot(node_path_fig)
+            
+            # Add explanation of the visualization
+            st.markdown("""
+            ### Understanding the Node Path Visualization
+            
+            This visualization shows the robot's "thinking pattern" by displaying the flow between source nodes (left) and target nodes (right).
+            
+            - **Source Nodes**: Represent the origin points of events or commands (shown in green)
+            - **Target Nodes**: Represent the destination or affected components (shown in blue)
+            - **Connection Lines**: Show the flow of information between nodes, with color indicating the event type
+            
+            The visualization is arranged chronologically from top to bottom, with timestamps shown on each connection.
+            """)
+        else:
+            st.info("No node path data available for visualization. Try uploading a file with robot event data.")
     
     with tab2:
         st.subheader("Input JSON Data")
@@ -217,26 +223,31 @@ else:
         # Create visualization using native Streamlit/matplotlib
         timeline_height = 600
         
-        # Display JSON data
-        create_json_viewer(
+        # Create event timeline
+        timeline_fig = create_event_timeline(
             data=st.session_state.data,
             selected_topics=st.session_state.selected_topics,
             current_time=st.session_state.current_time,
             height=timeline_height
         )
         
-        # Add explanation of the JSON data viewer
-        st.markdown("""
-        ### Understanding the JSON Data
-        
-        This viewer shows the raw JSON data from the uploaded file.
-        
-        - **Browse**: Expand/collapse sections to explore the data structure
-        - **Search**: Use your browser's search function to find specific values
-        - **Filter**: Data is filtered based on your selected topics in the sidebar
-        
-        The JSON view helps inspect the exact data structure and values.
-        """)
+        if timeline_fig:
+            st.pyplot(timeline_fig)
+            
+            # Add explanation of the JSON data viewer
+            st.markdown("""
+            ### Understanding the JSON Data
+            
+            This viewer shows the raw JSON data from the uploaded file.
+            
+            - **Browse**: Expand/collapse sections to explore the data structure
+            - **Search**: Use your browser's search function to find specific values
+            - **Filter**: Data is filtered based on your selected topics in the sidebar
+            
+            The JSON view helps inspect the exact data structure and values.
+            """)
+        else:
+            st.info("No JSON data available for viewing. Try uploading a file with robot data.")
 
 # Add playback animation functionality
 if st.session_state.is_playing:
