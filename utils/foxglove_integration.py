@@ -27,11 +27,8 @@ def create_event_timeline(data, selected_topics=None, current_time=None, height=
         None - Displays JSON data directly in Streamlit
     """
     st.subheader("Uploaded JSON Data Viewer")
-    
-    # Check if we have data
-    if not data:
-        st.warning("No data available for viewing")
-        return None
+    st.json(data)
+    return None
     
     # Display the JSON data for easy inspection
     try:
@@ -227,22 +224,57 @@ def create_node_path_visualization(data, current_time=None, height=600):
     import streamlit.components.v1 as components
     import time
     
-    if "node_paths" not in data or not data["node_paths"]:
-        st.info("No node path data available for visualization")
-        return None
-    
-    node_paths = data["node_paths"]
-    capability_count = node_paths.get("capability_count", 0)
-    
-    # Display the count of capabilities found
-    st.info(f"Found {capability_count} unique capabilities in the robot data")
-    
     # Create a NetworkX directed graph
     G = nx.DiGraph()
-    
-    # Create a mapping of capability nodes
-    capability_nodes = {}
-    message_nodes = {}
+
+    # Add nodes and edges from the event data
+    for entry in data.get("events", []):
+        source = entry.get("source", {}).get("capability")
+        target = entry.get("target", {}).get("capability")
+        label = entry.get("text", "")
+
+        if source and target:
+            G.add_node(source)
+            G.add_node(target)
+            G.add_edge(source, target, label=label)
+
+    if G.number_of_nodes() == 0:
+        st.warning("No valid node path data found in the file.")
+        return None
+
+    # Toggle to show all paths from all nodes
+    show_all_paths = st.checkbox("Show All Paths from All Nodes")
+
+    if show_all_paths:
+        st.markdown("### All Directed Paths in Graph")
+        for start_node in G.nodes():
+            for end_node in G.nodes():
+                if start_node != end_node:
+                    try:
+                        path = nx.shortest_path(G, source=start_node, target=end_node)
+                        st.markdown(f"`{start_node}` → `{end_node}`: {' → '.join(path)}")
+                    except:
+                        continue
+        return None
+
+    # Show dropdowns in Streamlit for shortest path
+    st.markdown("### Shortest Path Highlighter")
+    all_nodes = list(G.nodes())
+    start_node = st.selectbox("Select Start Node", all_nodes, key="start_node")
+    end_node = st.selectbox("Select End Node", all_nodes, key="end_node")
+
+    try:
+        shortest_path = nx.shortest_path(G, source=start_node, target=end_node)
+    except Exception:
+        st.error(f"No path exists between {start_node} and {end_node}")
+        shortest_path = []
+
+    # Create a subgraph if a path exists
+    subgraph_nodes = shortest_path if shortest_path else []
+    subgraph_edges = [(shortest_path[i], shortest_path[i+1]) for i in range(len(shortest_path)-1)] if shortest_path else []
+    SG = nx.DiGraph()
+    SG.add_nodes_from(subgraph_nodes)
+    SG.add_edges_from(subgraph_edges)
     
     # Process nodes first to identify capabilities
     if "nodes" in node_paths and node_paths["nodes"]:
