@@ -308,7 +308,7 @@ def get_available_topics(data):
     
     return topics
 
-def create_node_path_visualization(data, current_time=None, height=600):
+def create_node_path_visualization(data, current_time=None, height=800):
     """
     Create a visualization of the robot thinking pattern through node paths.
     
@@ -333,13 +333,19 @@ def create_node_path_visualization(data, current_time=None, height=600):
     
     nodes = node_paths["nodes"]
     connections = node_paths["connections"]
+    capability_count = node_paths.get("capability_count", 0)
     
     if not nodes or not connections:
         st.info("No nodes or connections found in the data")
         return None
     
-    # Create a larger figure for better readability
-    fig, ax = plt.subplots(figsize=(12, height/60))
+    # Display the count of capabilities found
+    st.info(f"Found {capability_count} unique capabilities in the robot data")
+    
+    # Create a very large figure for maximum readability (fit all 45 functions)
+    fig_width = 18  # Wider figure
+    fig_height = height / 40  # Taller figure 
+    fig, ax = plt.subplots(figsize=(fig_width, fig_height))
     
     # Create a dictionary to map node IDs to positions
     node_positions = {}
@@ -347,10 +353,16 @@ def create_node_path_visualization(data, current_time=None, height=600):
     # Create a dictionary to hold all node data by ID for easy lookup
     node_data_by_id = {node["id"]: node for node in nodes if "id" in node}
     
+    # Get capabilities and regular nodes for different visualization
+    capability_nodes = [node for node in nodes if node.get("is_capability", False)]
+    message_nodes = [node for node in nodes if not node.get("is_capability", False)]
+    
     # Map node types to colors with more distinctive colors
     node_type_colors = {
-        "source": "#00a651",  # Brighter Green for source nodes
-        "target": "#0078d7",  # Brighter Blue for target nodes
+        "source": "#00a651",       # Green for generic source nodes
+        "target": "#0078d7",       # Blue for generic target nodes
+        "capability": "#e74c3c",   # Red for capability nodes
+        "message": "#f39c12"       # Orange for message nodes
     }
     
     # Map event types to colors for connections with more vibrant colors
@@ -368,41 +380,80 @@ def create_node_path_visualization(data, current_time=None, height=600):
     # Set up vertical positioning for timeline
     timeline_height = len(sorted_connections)
     
-    # Collect unique source and target nodes
-    unique_source_nodes = set()
-    unique_target_nodes = set()
+    # Collect all unique source and target nodes by type for separate columns
+    capability_source_ids = set()
+    capability_target_ids = set()
+    message_source_ids = set()
+    message_target_ids = set()
     
-    for conn in sorted_connections:
-        source_id = conn.get("source")
-        target_id = conn.get("target")
-        if source_id:
-            unique_source_nodes.add(source_id)
-        if target_id:
-            unique_target_nodes.add(target_id)
-            
-    # First draw connections (edges)
+    # Identify which nodes are capabilities and which are messages
+    for node in nodes:
+        node_id = node.get("id", "")
+        is_capability = node.get("is_capability", False)
+        node_type = node.get("type", "")
+        
+        if is_capability:
+            if node_type == "source" or node_id.startswith("capability_"):
+                capability_source_ids.add(node_id)
+            else:
+                capability_target_ids.add(node_id)
+        else:
+            if node_type == "source":
+                message_source_ids.add(node_id)
+            else:
+                message_target_ids.add(node_id)
+    
+    # Calculate x-positions for different node types (4 columns layout)
+    # Column 1: Capability sources, Column 2: Message sources 
+    # Column 3: Message targets, Column 4: Capability targets
+    x_positions = {
+        "capability_source": 1,
+        "message_source": 3,
+        "message_target": 5,
+        "capability_target": 7
+    }
+    
+    # Keep track of used y-positions for each column
+    y_positions = {
+        "capability_source": {},
+        "message_source": {},
+        "message_target": {},
+        "capability_target": {}
+    }
+    
+    # Draw all the connection lines first
     for i, conn in enumerate(sorted_connections):
         source_id = conn.get("source")
         target_id = conn.get("target")
         
         if not source_id or not target_id:
             continue
-            
+        
+        # Determine node types and columns
+        source_type = "capability_source" if source_id in capability_source_ids else "message_source"
+        target_type = "capability_target" if target_id in capability_target_ids else "message_target"
+        
+        # Calculate y-position for this connection (each row is a different time point)
+        y_pos = timeline_height - i
+        
+        # Store the positions for later drawing with consistent spacing
+        if source_id not in y_positions[source_type]:
+            y_positions[source_type][source_id] = y_pos
+        
+        if target_id not in y_positions[target_type]:
+            y_positions[target_type][target_id] = y_pos
+        
+        # Get source and target x positions
+        source_x = x_positions[source_type]
+        target_x = x_positions[target_type]
+        
+        # Store node positions for later drawing
+        node_positions[source_id] = (source_x, y_pos)
+        node_positions[target_id] = (target_x, y_pos)
+        
         # Get event type for color
         event_type = conn.get("event")
         edge_color = event_colors.get(event_type, "#7f7f7f")  # Gray default
-        
-        # Position nodes vertically on timeline (more space between them)
-        y_pos = timeline_height - i
-        
-        # Position source node on the left, target on the right
-        # Use wider spacing for better readability
-        source_x = 1
-        target_x = 5
-        
-        # Store positions for node rendering
-        node_positions[source_id] = (source_x, y_pos)
-        node_positions[target_id] = (target_x, y_pos)
         
         # Draw connection line with arrow
         ax.annotate("", 
@@ -410,7 +461,7 @@ def create_node_path_visualization(data, current_time=None, height=600):
                    xytext=(source_x + 0.2, y_pos),
                    arrowprops=dict(arrowstyle="->", color=edge_color, lw=2, alpha=0.9))
         
-        # Add connection timestamp with more visibility
+        # Add connection timestamp with visibility
         ts = conn.get("timestamp", 0)
         if ts > 0:
             time_str = f"{ts:.2f}s"
@@ -418,7 +469,7 @@ def create_node_path_visualization(data, current_time=None, height=600):
                    ha='center', va='bottom', fontsize=9, alpha=0.8, 
                    bbox=dict(facecolor='white', alpha=0.7, pad=1, boxstyle='round'))
         
-        # Add topic name with better visibility and shorter display
+        # Add topic name if available
         topic = conn.get("topic", "")
         if topic:
             # Extract just the last part of the topic path for cleaner display
@@ -442,36 +493,61 @@ def create_node_path_visualization(data, current_time=None, height=600):
                    event_name, ha='center', va='top', fontsize=7, 
                    color=edge_color, weight='bold')
     
-    # Now draw nodes with labels (to be on top of edges)
+    # Now draw the nodes on top of connections with improved visibility
     for node_id, (x, y) in node_positions.items():
-        # Get node data from our lookup dictionary
+        # Get node data from lookup dictionary
         node_data = node_data_by_id.get(node_id)
         
         if not node_data:
             continue
         
         # Get node properties
-        node_type = node_data.get("type", "unknown")
+        is_capability = node_data.get("is_capability", False)
+        node_type = "capability" if is_capability else node_data.get("type", "unknown")
         node_name = node_data.get("name", node_id)
         
-        # Clean up node name if it's too long
-        if len(node_name) > 20:
-            node_name = f"{node_name[:17]}..."
-            
-        # Get color based on node type
-        node_color = node_type_colors.get(node_type, "#7f7f7f")
+        # Determine color based on node type
+        if is_capability:
+            node_color = node_type_colors["capability"]
+        elif node_type == "target" and node_id.startswith("message_"):
+            node_color = node_type_colors["message"]
+        else:
+            node_color = node_type_colors.get(node_type, "#7f7f7f")
         
-        # Draw node with larger marker for better visibility
-        ax.scatter(x, y, color=node_color, s=150, zorder=3, edgecolor='white')
+        # Draw larger nodes for better visibility
+        marker_size = 180 if is_capability else 140
+        ax.scatter(x, y, color=node_color, s=marker_size, zorder=3, 
+                   edgecolor='white', linewidth=1.5, alpha=0.9)
         
-        # Add node name with background for better readability
+        # Add node name with improved background for better readability
         # Position text away from the node with more space
-        text_x = x - 0.2 if x == 1 else x + 0.2
-        alignment = 'right' if x == 1 else 'left'
+        text_x = x - 0.3 if x in [x_positions["capability_source"], x_positions["message_source"]] else x + 0.3
+        alignment = 'right' if x in [x_positions["capability_source"], x_positions["message_source"]] else 'left'
         
-        ax.text(text_x, y, node_name, fontsize=10, 
+        # Handle long node names with appropriate shortening
+        display_name = node_name
+        if len(display_name) > 25:
+            # For capabilities, keep the last part which is usually most informative
+            if is_capability and "/" in display_name:
+                parts = display_name.split("/")
+                display_name = parts[-1]
+            else:
+                display_name = f"{display_name[:22]}..."
+        
+        # Add a background box for better readability with color hint
+        bbox_props = {
+            'facecolor': 'white', 
+            'alpha': 0.85, 
+            'pad': 2, 
+            'boxstyle': 'round,pad=0.5',
+            'edgecolor': node_color,
+            'linewidth': 1.5
+        }
+        
+        # Add node label with background
+        ax.text(text_x, y, display_name, fontsize=10, 
                 ha=alignment, va='center', zorder=4,
-                bbox=dict(facecolor='white', alpha=0.8, pad=2, boxstyle='round'))
+                bbox=bbox_props, fontweight='medium')
     
     # Highlight current time if provided
     if current_time is not None:
@@ -490,16 +566,21 @@ def create_node_path_visualization(data, current_time=None, height=600):
         if closest_idx < len(sorted_connections):
             y_pos = timeline_height - closest_idx
             ax.axhline(y_pos, color='red', linestyle='--', linewidth=2, alpha=0.7)
-            ax.text(0.6, y_pos + 0.15, "Current Time", color='red', fontweight='bold', fontsize=10)
+            ax.text(0.5, y_pos + 0.15, "Current Time", color='red', fontweight='bold', fontsize=10,
+                   bbox=dict(facecolor='white', alpha=0.8, pad=2, boxstyle='round'))
     
     # Format the plot
-    ax.set_title("Robot Thinking Pattern Visualization", fontsize=16, pad=20)
+    ax.set_title("Robot Thinking Pattern Visualization", fontsize=18, pad=20)
     
     # Set column headers
-    ax.text(1, timeline_height + 1, "SOURCE NODES", ha='center', va='bottom', 
-           fontsize=12, fontweight='bold', color=node_type_colors["source"])
-    ax.text(5, timeline_height + 1, "TARGET NODES", ha='center', va='bottom', 
-           fontsize=12, fontweight='bold', color=node_type_colors["target"])
+    ax.text(x_positions["capability_source"], timeline_height + 1, "CAPABILITY SOURCES", 
+           ha='center', va='bottom', fontsize=12, fontweight='bold', color=node_type_colors["capability"])
+    ax.text(x_positions["message_source"], timeline_height + 1, "MESSAGE SOURCES", 
+           ha='center', va='bottom', fontsize=12, fontweight='bold', color=node_type_colors["source"])
+    ax.text(x_positions["message_target"], timeline_height + 1, "MESSAGE TARGETS", 
+           ha='center', va='bottom', fontsize=12, fontweight='bold', color=node_type_colors["message"])
+    ax.text(x_positions["capability_target"], timeline_height + 1, "CAPABILITY TARGETS", 
+           ha='center', va='bottom', fontsize=12, fontweight='bold', color=node_type_colors["capability"])
     
     # Hide axis ticks for cleaner look
     ax.set_xticks([])
@@ -509,16 +590,19 @@ def create_node_path_visualization(data, current_time=None, height=600):
     ax.grid(True, axis='y', linestyle='--', alpha=0.3)
     
     # Set limits with padding
-    ax.set_xlim(0, 6)
+    ax.set_xlim(0, 8.5)
     if timeline_height > 0:
         ax.set_ylim(0.5, timeline_height + 1.5)
     
     # Create legend for node types
-    node_legend_elements = []
-    for node_type, color in node_type_colors.items():
-        node_legend_elements.append(plt.Line2D([0], [0], marker='o', color='w', 
-                                     markerfacecolor=color, markersize=10, 
-                                     label=f"{node_type.capitalize()} Node"))
+    node_legend_elements = [
+        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=node_type_colors["capability"], 
+                  markersize=10, label="Capability Node"),
+        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=node_type_colors["source"], 
+                  markersize=10, label="Source Node"),
+        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=node_type_colors["message"], 
+                  markersize=10, label="Message Node")
+    ]
     
     # Create legend for event types
     event_legend_elements = []
@@ -543,6 +627,13 @@ def create_node_path_visualization(data, current_time=None, height=600):
     legend2 = ax.legend(handles=event_legend_elements, loc='upper right', 
                       title="Event Types", fontsize='medium', title_fontsize='medium',
                       bbox_to_anchor=(0.99, 0.99))
+    
+    # Mention CapabilityGetRunner specifically since it's important
+    runner_state = "Found" if any(node.get("name", "") == "std_capabilities/CapabilityGetRunner" for node in nodes) else "Not Found"
+    ax.text(0.5, -0.01, f"CapabilityGetRunner Status: {runner_state}", 
+           ha='center', va='top', fontsize=11, fontweight='bold',
+           transform=ax.transAxes,
+           bbox=dict(facecolor='#e5e5e5', alpha=0.8, pad=3, boxstyle='round'))
     
     plt.tight_layout()
     return fig

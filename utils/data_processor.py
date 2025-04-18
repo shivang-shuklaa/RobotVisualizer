@@ -340,14 +340,68 @@ def extract_node_paths(data):
     # Initialize node path data structure
     node_paths = {
         "nodes": [],  # List of nodes with id, name, and type
-        "connections": []  # List of connections between nodes
+        "connections": [],  # List of connections between nodes
+        "capabilities": {},  # Dictionary of capability names to track unique capabilities
+        "capability_count": 0  # Count of unique capabilities found
     }
     
     # Set to keep track of added nodes to avoid duplicates
     added_node_ids = set()
     
+    # Track capabilities to give them consistent IDs and to identify unique functions
+    capability_ids = {}
+    capability_name_to_id = {}
+    next_capability_id = 1  # Start from 1 for better readability
+    
     # Check if it's ROSBridge format (list of messages)
     if isinstance(data, list) and len(data) > 0 and all(isinstance(item, dict) for item in data):
+        # First pass - collect all unique capabilities
+        for msg_idx, msg_data in enumerate(data):
+            if "op" in msg_data and msg_data["op"] == "publish" and "topic" in msg_data and "msg" in msg_data:
+                msg_content = msg_data["msg"]
+                
+                # Skip if not a dictionary
+                if not isinstance(msg_content, dict):
+                    continue
+                
+                # Process source capabilities
+                if "source" in msg_content and isinstance(msg_content["source"], dict):
+                    source = msg_content["source"]
+                    
+                    if "capability" in source and source["capability"]:
+                        capability_name = source["capability"]
+                        if capability_name not in capability_ids:
+                            capability_ids[capability_name] = next_capability_id
+                            capability_name_to_id[capability_name] = f"capability_{next_capability_id}"
+                            node_paths["capabilities"][capability_name] = {
+                                "id": next_capability_id,
+                                "name": capability_name,
+                                "node_id": f"capability_{next_capability_id}",
+                                "messages": []
+                            }
+                            next_capability_id += 1
+                
+                # Process target capabilities
+                if "target" in msg_content and isinstance(msg_content["target"], dict):
+                    target = msg_content["target"]
+                    
+                    if "capability" in target and target["capability"]:
+                        capability_name = target["capability"]
+                        if capability_name not in capability_ids:
+                            capability_ids[capability_name] = next_capability_id
+                            capability_name_to_id[capability_name] = f"capability_{next_capability_id}"
+                            node_paths["capabilities"][capability_name] = {
+                                "id": next_capability_id,
+                                "name": capability_name,
+                                "node_id": f"capability_{next_capability_id}",
+                                "messages": []
+                            }
+                            next_capability_id += 1
+        
+        # Update capability count
+        node_paths["capability_count"] = len(capability_ids)
+        
+        # Second pass - create nodes and connections
         for msg_idx, msg_data in enumerate(data):
             if "op" in msg_data and msg_data["op"] == "publish" and "topic" in msg_data and "msg" in msg_data:
                 msg_content = msg_data["msg"]
@@ -372,46 +426,49 @@ def extract_node_paths(data):
                 source_name = ""
                 target_name = ""
                 event_type = 0
+                target_text = ""
+                source_capability = ""
+                target_capability = ""
                 
                 # Extract source info
                 if "source" in msg_content and isinstance(msg_content["source"], dict):
                     source = msg_content["source"]
                     
-                    # Generate source ID
-                    if "id" in source:
-                        source_id = f"source_{source['id']}"
-                    elif "capability" in source:
-                        source_id = f"source_{source['capability']}"
-                    else:
-                        source_id = f"source_{msg_idx}"
+                    # Get capability information from source
+                    if "capability" in source and source["capability"]:
+                        source_capability = source["capability"]
+                        if source_capability in capability_name_to_id:
+                            source_id = capability_name_to_id[source_capability]
+                            source_name = source_capability
                     
-                    # Get source name
-                    if "capability" in source:
-                        source_name = source["capability"]
-                    elif "name" in source:
-                        source_name = source["name"]
-                    else:
-                        # Extract last part of topic as source name if nothing else available
-                        source_name = topic.split('/')[-1]
+                    # If no capability was found, create a generic source
+                    if not source_id:
+                        source_id = f"source_{msg_idx}"
+                        source_name = topic.split('/')[-1] if '/' in topic else "Unknown"
                 
                 # Extract target info
                 if "target" in msg_content and isinstance(msg_content["target"], dict):
                     target = msg_content["target"]
                     
-                    # Generate target ID
-                    if "id" in target:
-                        target_id = f"target_{target['id']}"
-                    elif "thread_id" in target:
-                        target_id = f"target_{target['thread_id']}"
-                    else:
-                        target_id = f"target_{msg_idx}"
+                    # Get capability information from target
+                    if "capability" in target and target["capability"]:
+                        target_capability = target["capability"]
+                        if target_capability in capability_name_to_id:
+                            target_id = capability_name_to_id[target_capability]
+                            target_name = target_capability
                     
-                    # Get target name
+                    # Get message text from target
                     if "text" in target:
-                        target_name = target["text"][:20]  # Truncate to avoid too long names
-                    elif "name" in target:
-                        target_name = target["name"]
-                    else:
+                        target_text = target["text"]
+                    
+                    # If no capability was found but we have text, create a message node
+                    if not target_id and target_text:
+                        target_id = f"message_{msg_idx}"
+                        # Get a shortened version of the text for the node name
+                        target_name = f"{target_text[:30]}{'...' if len(target_text) > 30 else ''}"
+                    # If neither capability nor text, use a generic target
+                    elif not target_id:
+                        target_id = f"target_{msg_idx}"
                         target_name = f"Target {msg_idx}"
                     
                     # Get event type
@@ -422,33 +479,50 @@ def extract_node_paths(data):
                             # If conversion fails, default to 0 (Info)
                             event_type = 0
                 
+                # Add message to capability tracking if this is related to CapabilityGetRunner
+                if source_capability == "std_capabilities/CapabilityGetRunner" or target_capability == "std_capabilities/CapabilityGetRunner":
+                    cap_key = source_capability if source_capability else target_capability
+                    if cap_key in node_paths["capabilities"]:
+                        node_paths["capabilities"][cap_key]["messages"].append({
+                            "text": target_text,
+                            "timestamp": timestamp,
+                            "event": event_type
+                        })
+                
                 # If we have both source and target, add them and their connection
                 if source_id and target_id:
                     # Add source node if not already added
                     if source_id not in added_node_ids:
+                        node_type = "capability" if source_id.startswith("capability_") else "source"
                         node_paths["nodes"].append({
                             "id": source_id,
                             "name": source_name,
-                            "type": "source"
+                            "type": node_type,
+                            "is_capability": source_id.startswith("capability_")
                         })
                         added_node_ids.add(source_id)
                     
                     # Add target node if not already added
                     if target_id not in added_node_ids:
+                        node_type = "capability" if target_id.startswith("capability_") else "target"
                         node_paths["nodes"].append({
                             "id": target_id,
                             "name": target_name,
-                            "type": "target"
+                            "type": node_type,
+                            "is_capability": target_id.startswith("capability_"),
+                            "text": target_text if target_id.startswith("message_") else ""
                         })
                         added_node_ids.add(target_id)
                     
                     # Add connection
                     node_paths["connections"].append({
+                        "id": f"conn_{msg_idx}",
                         "source": source_id,
                         "target": target_id,
+                        "topic": topic,
                         "timestamp": timestamp,
                         "event": event_type,
-                        "topic": topic
+                        "text": target_text
                     })
     
     # Sort connections by timestamp
