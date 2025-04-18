@@ -7,18 +7,7 @@ import matplotlib.patches as mpatches
 import time
 import json
 
-def create_node_path_visualization(data, current_time=None, height=600):
-    """
-    Create an interactive visualization of the robot thinking pattern through node paths using PyVis.
-    
-    Args:
-        data: Processed data dictionary containing node path information
-        current_time: Current playback time
-        height: Height of the visualization
-        
-    Returns:
-        None - Renders the interactive network directly in Streamlit
-    """
+def create_node_path_visualization(data, current_time, height=600):
     # Create a NetworkX directed graph
     G = nx.DiGraph()
     valid_connections = 0
@@ -126,39 +115,16 @@ def create_node_path_visualization(data, current_time=None, height=600):
                 continue
     else:
         st.info(f"No reachable nodes from `{start_node}`.")
-        
-    return None
-
-def create_json_viewer(data, selected_topics=None, current_time=None, height=600):
-    """
-    Display the uploaded JSON data in a Streamlit JSON viewer.
-    
-    Args:
-        data: Processed data dictionary containing messages
-        selected_topics: List of topics to display
-        current_time: Current playback time
-        height: Height of the visualization
-        
-    Returns:
-        None - Displays JSON data directly in Streamlit
-    """
-    st.subheader("Uploaded JSON Data Viewer")
-    st.json(data)
-    return None
 
 def get_available_topics(data):
-    """
-    Extract available topics from the processed data.
-    
-    Args:
-        data: Processed robot data
-        
-    Returns:
-        list: Available topics for visualization
-    """
     topics = set()
     for entry in data.get("events", []):
         topic = entry.get("topic")
         if topic:
             topics.add(topic)
     return list(topics)
+
+def create_json_viewer(data, selected_topics, current_time, height=600):
+    st.subheader("Uploaded JSON Data Viewer")
+    st.json(data)
+    return None
