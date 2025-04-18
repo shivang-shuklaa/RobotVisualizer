@@ -338,25 +338,28 @@ def create_node_path_visualization(data, current_time=None, height=600):
         st.info("No nodes or connections found in the data")
         return None
     
-    # Create a figure for the visualization
-    fig, ax = plt.subplots(figsize=(10, height/80))
+    # Create a larger figure for better readability
+    fig, ax = plt.subplots(figsize=(12, height/60))
     
     # Create a dictionary to map node IDs to positions
     node_positions = {}
     
-    # Map node types to colors
+    # Create a dictionary to hold all node data by ID for easy lookup
+    node_data_by_id = {node["id"]: node for node in nodes if "id" in node}
+    
+    # Map node types to colors with more distinctive colors
     node_type_colors = {
-        "source": "#2ca02c",  # Green for source nodes
-        "target": "#1f77b4",  # Blue for target nodes
+        "source": "#00a651",  # Brighter Green for source nodes
+        "target": "#0078d7",  # Brighter Blue for target nodes
     }
     
-    # Map event types to colors for connections
+    # Map event types to colors for connections with more vibrant colors
     event_colors = {
-        0: "#1f77b4",  # Blue for Info
-        1: "#2ca02c",  # Green for Start
-        2: "#d62728",  # Red for End
-        3: "#ff7f0e",  # Orange for Error
-        4: "#9467bd"   # Purple for Success
+        0: "#3498db",  # Info (Blue)
+        1: "#2ecc71",  # Start (Green)
+        2: "#e74c3c",  # End (Red)
+        3: "#f39c12",  # Error (Orange)
+        4: "#9b59b6"   # Success (Purple)
     }
     
     # Sort connections by timestamp
@@ -365,53 +368,84 @@ def create_node_path_visualization(data, current_time=None, height=600):
     # Set up vertical positioning for timeline
     timeline_height = len(sorted_connections)
     
+    # Collect unique source and target nodes
+    unique_source_nodes = set()
+    unique_target_nodes = set()
+    
+    for conn in sorted_connections:
+        source_id = conn.get("source")
+        target_id = conn.get("target")
+        if source_id:
+            unique_source_nodes.add(source_id)
+        if target_id:
+            unique_target_nodes.add(target_id)
+            
     # First draw connections (edges)
     for i, conn in enumerate(sorted_connections):
         source_id = conn.get("source")
         target_id = conn.get("target")
         
+        if not source_id or not target_id:
+            continue
+            
         # Get event type for color
         event_type = conn.get("event")
         edge_color = event_colors.get(event_type, "#7f7f7f")  # Gray default
         
-        # Position nodes vertically on timeline
+        # Position nodes vertically on timeline (more space between them)
         y_pos = timeline_height - i
         
         # Position source node on the left, target on the right
+        # Use wider spacing for better readability
         source_x = 1
-        target_x = 3
+        target_x = 5
         
         # Store positions for node rendering
         node_positions[source_id] = (source_x, y_pos)
         node_positions[target_id] = (target_x, y_pos)
         
-        # Draw connection line
-        ax.plot([source_x, target_x], [y_pos, y_pos], color=edge_color, linewidth=2, 
-                alpha=0.8, zorder=1)
+        # Draw connection line with arrow
+        ax.annotate("", 
+                   xy=(target_x - 0.2, y_pos), 
+                   xytext=(source_x + 0.2, y_pos),
+                   arrowprops=dict(arrowstyle="->", color=edge_color, lw=2, alpha=0.9))
         
-        # Add connection timestamp
+        # Add connection timestamp with more visibility
         ts = conn.get("timestamp", 0)
         if ts > 0:
             time_str = f"{ts:.2f}s"
             ax.text((source_x + target_x) / 2, y_pos + 0.1, time_str, 
-                   ha='center', va='bottom', fontsize=8, alpha=0.7)
+                   ha='center', va='bottom', fontsize=9, alpha=0.8, 
+                   bbox=dict(facecolor='white', alpha=0.7, pad=1, boxstyle='round'))
         
-        # Add topic name
+        # Add topic name with better visibility and shorter display
         topic = conn.get("topic", "")
         if topic:
+            # Extract just the last part of the topic path for cleaner display
+            topic_short = topic.split('/')[-1]
             ax.text((source_x + target_x) / 2, y_pos - 0.1, 
-                   topic.split('/')[-1], ha='center', va='top', fontsize=6, alpha=0.5)
+                   topic_short, ha='center', va='top', fontsize=8, alpha=0.7,
+                   bbox=dict(facecolor='white', alpha=0.5, pad=1, boxstyle='round'))
+            
+        # Get event name for display
+        event_names_dict = {
+            0: "Info",
+            1: "Start",
+            2: "End",
+            3: "Error",
+            4: "Success"
+        }
+        if event_type in event_names_dict:
+            event_name = event_names_dict[event_type]
+            # Add event type label near the arrow
+            ax.text((source_x + target_x) / 2, y_pos - 0.25, 
+                   event_name, ha='center', va='top', fontsize=7, 
+                   color=edge_color, weight='bold')
     
-    # Now draw nodes (to be on top of edges)
-    node_drawn = set()  # Keep track of already drawn nodes
-    
+    # Now draw nodes with labels (to be on top of edges)
     for node_id, (x, y) in node_positions.items():
-        # Find node data
-        node_data = None
-        for node in nodes:
-            if node.get("id") == node_id:
-                node_data = node
-                break
+        # Get node data from our lookup dictionary
+        node_data = node_data_by_id.get(node_id)
         
         if not node_data:
             continue
@@ -420,18 +454,24 @@ def create_node_path_visualization(data, current_time=None, height=600):
         node_type = node_data.get("type", "unknown")
         node_name = node_data.get("name", node_id)
         
+        # Clean up node name if it's too long
+        if len(node_name) > 20:
+            node_name = f"{node_name[:17]}..."
+            
         # Get color based on node type
         node_color = node_type_colors.get(node_type, "#7f7f7f")
         
-        # Only draw the node once (might be referenced by multiple connections)
-        if node_id not in node_drawn:
-            ax.scatter(x, y, color=node_color, s=100, zorder=3)
-            node_drawn.add(node_id)
+        # Draw node with larger marker for better visibility
+        ax.scatter(x, y, color=node_color, s=150, zorder=3, edgecolor='white')
         
-        # Add node name
-        ax.text(x, y, f" {node_name}", fontsize=8, 
-               ha='left' if x == 1 else 'right',  # Align left for source, right for target
-               va='center')
+        # Add node name with background for better readability
+        # Position text away from the node with more space
+        text_x = x - 0.2 if x == 1 else x + 0.2
+        alignment = 'right' if x == 1 else 'left'
+        
+        ax.text(text_x, y, node_name, fontsize=10, 
+                ha=alignment, va='center', zorder=4,
+                bbox=dict(facecolor='white', alpha=0.8, pad=2, boxstyle='round'))
     
     # Highlight current time if provided
     if current_time is not None:
@@ -446,20 +486,32 @@ def create_node_path_visualization(data, current_time=None, height=600):
                 min_diff = diff
                 closest_idx = i
         
-        # Highlight the line corresponding to current time
-        y_pos = timeline_height - closest_idx
-        ax.axhline(y_pos, color='red', linestyle='--', linewidth=1, alpha=0.7)
+        # Highlight the line corresponding to current time with more visibility
+        if closest_idx < len(sorted_connections):
+            y_pos = timeline_height - closest_idx
+            ax.axhline(y_pos, color='red', linestyle='--', linewidth=2, alpha=0.7)
+            ax.text(0.6, y_pos + 0.15, "Current Time", color='red', fontweight='bold', fontsize=10)
     
     # Format the plot
-    ax.set_title("Robot Thinking Pattern (Node Paths)")
-    ax.set_xticks([1, 3])
-    ax.set_xticklabels(["Source Nodes", "Target Nodes"])
-    ax.set_yticks([])  # Hide y-axis ticks
+    ax.set_title("Robot Thinking Pattern Visualization", fontsize=16, pad=20)
     
-    # Set limits with some padding
-    ax.set_xlim(0.5, 3.5)
+    # Set column headers
+    ax.text(1, timeline_height + 1, "SOURCE NODES", ha='center', va='bottom', 
+           fontsize=12, fontweight='bold', color=node_type_colors["source"])
+    ax.text(5, timeline_height + 1, "TARGET NODES", ha='center', va='bottom', 
+           fontsize=12, fontweight='bold', color=node_type_colors["target"])
+    
+    # Hide axis ticks for cleaner look
+    ax.set_xticks([])
+    ax.set_yticks([])
+    
+    # Add grid lines for better readability
+    ax.grid(True, axis='y', linestyle='--', alpha=0.3)
+    
+    # Set limits with padding
+    ax.set_xlim(0, 6)
     if timeline_height > 0:
-        ax.set_ylim(0.5, timeline_height + 0.5)
+        ax.set_ylim(0.5, timeline_height + 1.5)
     
     # Create legend for node types
     node_legend_elements = []
@@ -470,25 +522,27 @@ def create_node_path_visualization(data, current_time=None, height=600):
     
     # Create legend for event types
     event_legend_elements = []
-    event_names = {
+    event_names_dict = {
         0: "Info",
         1: "Start",
         2: "End",
         3: "Error",
         4: "Success"
     }
-    
     for event_type, color in event_colors.items():
-        event_legend_elements.append(plt.Line2D([0], [0], color=color, lw=2,
-                                     label=f"{event_names.get(event_type, 'Unknown')} Event"))
+        if event_type in event_names_dict:
+            event_legend_elements.append(plt.Line2D([0], [0], color=color, lw=2,
+                                         label=f"{event_names_dict[event_type]} Event"))
     
-    # Add the legends
+    # Add the legends with better positioning
     legend1 = ax.legend(handles=node_legend_elements, loc='upper left', 
-                        title="Node Types", fontsize='small')
+                        title="Node Types", fontsize='medium', title_fontsize='medium',
+                        bbox_to_anchor=(0.01, 0.99))
     ax.add_artist(legend1)
     
-    ax.legend(handles=event_legend_elements, loc='upper right', 
-              title="Event Types", fontsize='small')
+    legend2 = ax.legend(handles=event_legend_elements, loc='upper right', 
+                      title="Event Types", fontsize='medium', title_fontsize='medium',
+                      bbox_to_anchor=(0.99, 0.99))
     
     plt.tight_layout()
     return fig

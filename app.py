@@ -16,8 +16,8 @@ st.set_page_config(
 )
 
 # Main title
-st.title("Robot Data Visualizer")
-st.markdown("Upload JSON robot data files to visualize with Foxglove integration")
+st.title("Robot Path Visualizer")
+st.markdown("Upload JSON robot data files to visualize node paths and robot operations")
 
 # Sidebar for controls
 st.sidebar.header("Controls")
@@ -121,7 +121,7 @@ if st.session_state.data is not None:
 # Main content area
 if st.session_state.data is None:
     # Display instructions when no data is loaded
-    st.title("Robot Data Visualization Tool")
+    st.title("Robot Path Visualization Tool")
     
     st.markdown("""
     This tool allows you to visualize and analyze robot data from JSON files, with a focus on ROS (Robot Operating System) messages.
@@ -137,18 +137,19 @@ if st.session_state.data is None:
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("3D Visualization")
-        st.markdown("""
-        - Interactive 3D view of robot position and movement
-        - Timeline visualization of robot events
-        - View coordinate frames and message flow
-        """)
-        
         st.subheader("Node Path Visualization")
         st.markdown("""
-        - Visualize the robot's "thinking pattern"
-        - Show flow between source and target nodes
-        - Understand the decision-making process
+        - Visualize the robot's "thinking pattern" with clear node names
+        - See direct connections between source and target nodes
+        - Track the flow of information with color-coded event types
+        - Understand complex decision-making processes
+        """)
+        
+        st.subheader("Event Timeline")
+        st.markdown("""
+        - Chronological view of robot events over time
+        - Track capability activations and state changes
+        - Identify patterns in robot behavior
         """)
         
         st.subheader("Time Series Data")
@@ -188,28 +189,9 @@ if st.session_state.data is None:
     
 else:
     # Create tabs for different visualization aspects
-    tab1, tab2, tab3, tab4 = st.tabs(["3D Visualization", "Node Path Visualization", "Time Series Data", "Robot State"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Node Path Visualization", "Timeline Events", "Time Series Data", "Robot State"])
     
     with tab1:
-        st.subheader("Robot Visualization")
-        
-        # Create visualization using native Streamlit/matplotlib
-        timeline_height = 600
-        
-        # Create event timeline
-        timeline_fig = create_event_timeline(
-            data=st.session_state.data,
-            selected_topics=st.session_state.selected_topics,
-            current_time=st.session_state.current_time,
-            height=timeline_height
-        )
-        
-        if timeline_fig:
-            st.pyplot(timeline_fig)
-        else:
-            st.info("No data available for visualization. Try uploading a file with robot data.")
-    
-    with tab2:
         st.subheader("Robot Thinking Pattern")
         
         # Create node path visualization
@@ -239,6 +221,38 @@ else:
             """)
         else:
             st.info("No node path data available for visualization. Try uploading a file with robot event data.")
+    
+    with tab2:
+        st.subheader("Event Timeline")
+        
+        # Create visualization using native Streamlit/matplotlib
+        timeline_height = 600
+        
+        # Create event timeline
+        timeline_fig = create_event_timeline(
+            data=st.session_state.data,
+            selected_topics=st.session_state.selected_topics,
+            current_time=st.session_state.current_time,
+            height=timeline_height
+        )
+        
+        if timeline_fig:
+            st.pyplot(timeline_fig)
+            
+            # Add explanation of the visualization
+            st.markdown("""
+            ### Understanding the Event Timeline
+            
+            This visualization shows robot events over time as a chronological timeline.
+            
+            - **Event Types**: Different colors represent different event types (Info, Start, End, Error, Success)
+            - **Capabilities**: Horizontal bars show which capability was involved in each event
+            - **Messages**: Text messages provide additional context for events
+            
+            The timeline helps identify patterns and sequences in robot operations.
+            """)
+        else:
+            st.info("No timeline data available for visualization. Try uploading a file with robot event data.")
     
     with tab3:
         st.subheader("Sensor Data Time Series")
