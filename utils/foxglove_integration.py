@@ -247,9 +247,15 @@ def create_node_path_visualization(data, current_time=None, height=600):
 
     # Add nodes and edges from the event data
     for entry in data.get("events", []):
-        # Fallback capability extraction
-        source = entry.get("source", {}).get("capability") or entry.get("source", {}).get("label")
-        target = entry.get("target", {}).get("capability") or entry.get("target", {}).get("label")
+        # Fallback capability extraction with more flexibility
+        source = entry.get("source", {}).get("capability") \
+                 or entry.get("source", {}).get("provider") \
+                 or entry.get("source", {}).get("label")
+
+        target = entry.get("target", {}).get("capability") \
+                 or entry.get("target", {}).get("provider") \
+                 or entry.get("target", {}).get("label")
+
         label = entry.get("text", "")
 
         # Clean up whitespace and type-check
@@ -262,14 +268,21 @@ def create_node_path_visualization(data, current_time=None, height=600):
         else:
             target = None
 
+        # Add valid edges, or fallback to isolated nodes
         if source and target:
             G.add_node(source)
             G.add_node(target)
             G.add_edge(source, target, label=label)
             valid_connections += 1
+        else:
+            # Even if not connected, add standalone nodes for visualization
+            if source:
+                G.add_node(source)
+            if target:
+                G.add_node(target)
 
-    if valid_connections == 0:
-        st.warning("No valid node path data found in the file.")
+    if G.number_of_nodes() == 0:
+        st.warning("No valid node data found in the file.")
         st.markdown("#### Debugging: Preview of first 5 event entries with source/target")
         for i, entry in enumerate(data.get("events", [])[:5]):
             st.write(f"Event {i+1}")
@@ -298,6 +311,10 @@ def create_node_path_visualization(data, current_time=None, height=600):
     # Show dropdowns in Streamlit for shortest path
     st.markdown("### Shortest Path Highlighter")
     all_nodes = list(G.nodes())
+    if not all_nodes:
+        st.error("No nodes available for selection.")
+        return False
+
     start_node = st.selectbox("Select Start Node", all_nodes, key="start_node")
     end_node = st.selectbox("Select End Node", all_nodes, key="end_node")
 
