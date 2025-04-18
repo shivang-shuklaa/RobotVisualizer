@@ -336,25 +336,30 @@ def create_node_path_visualization(data, current_time=None, height=600):
     # Get all capability nodes for dropdown
     all_nodes = sorted(list(G.nodes()))
     
-    # Apply custom CSS to make the dropdown wider
+    # Apply specific styling for these selectboxes to ensure full text display
     st.markdown("""
     <style>
-    .stSelectbox {
-        width: 100%;
-        min-width: 100%;
+    /* Make these specific dropdowns show full text */
+    [data-testid="stSelectbox"] {
+        width: 100% !important;
     }
-    div[data-baseweb="select"] > div {
-        min-width: 100%;
+    
+    div[data-baseweb="select"] span[title] {
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: unset !important;
+        width: auto !important;
+        max-width: none !important;
     }
     </style>
     """, unsafe_allow_html=True)
     
-    # Stack the dropdowns vertically for more space
+    # Stack the dropdowns vertically for more space with full text display
     start_node = st.selectbox("Select Start Node", all_nodes, key="start_node", 
-                              format_func=lambda x: x)  # Show full name
+                             label_visibility="visible")
     
     end_node = st.selectbox("Select End Node", all_nodes, key="end_node",
-                            format_func=lambda x: x)  # Show full name
+                           label_visibility="visible")
         
     # Calculate shortest path
     shortest_path = []

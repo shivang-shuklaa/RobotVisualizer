@@ -28,10 +28,26 @@ div[data-baseweb="select"] > div {
     min-width: 100%;
 }
 
-/* Improve dropdown readability */
+/* Prevent text truncation with ellipsis (...) */
+div[data-baseweb="select"] span {
+    text-overflow: unset !important;
+    white-space: normal !important;
+    overflow: visible !important;
+}
+
+/* Make the dropdown options display full text */
+div[role="listbox"] div {
+    text-overflow: unset !important;
+    white-space: normal !important;
+    overflow: visible !important;
+}
+
+/* Improve dropdown readability and prevent truncation */
 .stSelectbox div[role="listbox"] span {
-    white-space: normal;
-    word-wrap: break-word;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
 }
 </style>
 """, unsafe_allow_html=True)
