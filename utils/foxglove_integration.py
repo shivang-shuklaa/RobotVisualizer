@@ -308,9 +308,9 @@ def get_available_topics(data):
     
     return topics
 
-def create_node_path_visualization(data, current_time=None, height=800):
+def create_node_path_visualization(data, current_time=None, height=600):
     """
-    Create a visualization of the robot thinking pattern through node paths.
+    Create an interactive visualization of the robot thinking pattern through node paths using PyVis.
     
     Args:
         data: Processed data dictionary containing node path information
@@ -318,54 +318,261 @@ def create_node_path_visualization(data, current_time=None, height=800):
         height: Height of the visualization
         
     Returns:
-        Streamlit matplotlib figure
+        None - Renders the interactive network directly in Streamlit
     """
+    from pyvis.network import Network
+    import networkx as nx
+    import streamlit.components.v1 as components
+    import time
+    
     if "node_paths" not in data or not data["node_paths"]:
         st.info("No node path data available for visualization")
         return None
     
     node_paths = data["node_paths"]
-    
-    # Check if we have nodes and connections
-    if "nodes" not in node_paths or "connections" not in node_paths:
-        st.info("Node path data is incomplete")
-        return None
-    
-    nodes = node_paths["nodes"]
-    connections = node_paths["connections"]
     capability_count = node_paths.get("capability_count", 0)
-    
-    if not nodes or not connections:
-        st.info("No nodes or connections found in the data")
-        return None
     
     # Display the count of capabilities found
     st.info(f"Found {capability_count} unique capabilities in the robot data")
     
-    # Create a very large figure for maximum readability (fit all 45 functions)
-    fig_width = 18  # Wider figure
-    fig_height = height / 40  # Taller figure 
-    fig, ax = plt.subplots(figsize=(fig_width, fig_height))
+    # Create a NetworkX directed graph
+    G = nx.DiGraph()
     
-    # Create a dictionary to map node IDs to positions
-    node_positions = {}
+    # Create a mapping of capability nodes
+    capability_nodes = {}
+    message_nodes = {}
     
-    # Create a dictionary to hold all node data by ID for easy lookup
-    node_data_by_id = {node["id"]: node for node in nodes if "id" in node}
+    # Process nodes first to identify capabilities
+    if "nodes" in node_paths and node_paths["nodes"]:
+        for node in node_paths["nodes"]:
+            node_id = node.get("id", "")
+            node_name = node.get("name", "")
+            is_capability = node.get("is_capability", False)
+            
+            if is_capability and node_name:
+                # For capabilities, clean up the name to just show the last part
+                if "/" in node_name:
+                    display_name = node_name.split("/")[-1]
+                else:
+                    display_name = node_name
+                
+                # Store mapping for easy lookup
+                capability_nodes[node_id] = {"name": node_name, "display_name": display_name}
+                
+                # Add to graph
+                G.add_node(node_name, title=node_name, group=1)
+            elif node_id.startswith("message_"):
+                # For message nodes, create a cleaner display name
+                display_name = node_name
+                if len(display_name) > 30:
+                    display_name = f"{display_name[:27]}..."
+                
+                message_nodes[node_id] = {"name": node_name, "display_name": display_name}
+                
+                # Add to graph
+                G.add_node(node_name, title=node_name, group=2)
     
-    # Get capabilities and regular nodes for different visualization
-    capability_nodes = [node for node in nodes if node.get("is_capability", False)]
-    message_nodes = [node for node in nodes if not node.get("is_capability", False)]
+    # Process connections to draw edges
+    if "connections" in node_paths and node_paths["connections"]:
+        for conn in node_paths["connections"]:
+            source_id = conn.get("source")
+            target_id = conn.get("target")
+            topic = conn.get("topic", "")
+            timestamp = conn.get("timestamp", 0)
+            event_type = conn.get("event", 0)
+            text = conn.get("text", "")
+            
+            # Map event types to names
+            event_names = {
+                0: "Info",
+                1: "Start",
+                2: "End",
+                3: "Error",
+                4: "Success"
+            }
+            event_name = event_names.get(event_type, "Unknown")
+            
+            # Get node information
+            source_info = None
+            target_info = None
+            
+            if source_id in capability_nodes:
+                source_info = capability_nodes[source_id]
+            elif source_id in message_nodes:
+                source_info = message_nodes[source_id]
+                
+            if target_id in capability_nodes:
+                target_info = capability_nodes[target_id]
+            elif target_id in message_nodes:
+                target_info = message_nodes[target_id]
+            
+            # Skip if we don't have valid source and target
+            if not source_info or not target_info:
+                continue
+                
+            source_name = source_info["name"]
+            target_name = target_info["name"]
+            
+            # Create a meaningful edge label
+            edge_label = f"{event_name}"
+            if topic:
+                topic_short = topic.split('/')[-1]
+                edge_label += f" - {topic_short}"
+            if timestamp:
+                edge_label += f" ({timestamp:.2f}s)"
+                
+            # Add edge to graph
+            G.add_edge(source_name, target_name, 
+                       title=edge_label, 
+                       label=event_name,
+                       color=get_event_color(event_type),
+                       time=timestamp)
     
-    # Map node types to colors with more distinctive colors
-    node_type_colors = {
-        "source": "#00a651",       # Green for generic source nodes
-        "target": "#0078d7",       # Blue for generic target nodes
-        "capability": "#e74c3c",   # Red for capability nodes
-        "message": "#f39c12"       # Orange for message nodes
+    # Show dropdowns in Streamlit for shortest path
+    st.markdown("### Shortest Path Highlighter")
+    
+    # Get all capability nodes for dropdown
+    all_nodes = sorted(list(G.nodes()))
+    
+    # Select nodes for shortest path highlighting
+    col1, col2 = st.columns(2)
+    with col1:
+        start_node = st.selectbox("Select Start Node", all_nodes, key="start_node")
+    with col2:
+        end_node = st.selectbox("Select End Node", all_nodes, key="end_node")
+        
+    # Calculate shortest path
+    shortest_path = []
+    try:
+        if start_node and end_node and start_node != end_node:
+            shortest_path = nx.shortest_path(G, source=start_node, target=end_node)
+            st.success(f"Found path with {len(shortest_path)-1} steps between nodes")
+    except nx.NetworkXNoPath:
+        st.warning(f"No path exists between {start_node} and {end_node}")
+    except Exception as e:
+        st.error(f"Error finding path: {str(e)}")
+    
+    # Create PyVis network
+    net = Network(height=f"{height}px", width="100%", directed=True, notebook=False)
+    
+    # Set physics options for better layout
+    net.set_options("""
+    {
+      "physics": {
+        "hierarchicalRepulsion": {
+          "centralGravity": 0.0,
+          "springLength": 150,
+          "springConstant": 0.01,
+          "nodeDistance": 200,
+          "damping": 0.09
+        },
+        "solver": "hierarchicalRepulsion",
+        "stabilization": {
+          "iterations": 100
+        }
+      },
+      "layout": {
+        "hierarchical": {
+          "enabled": true,
+          "direction": "LR",
+          "sortMethod": "directed",
+          "levelSeparation": 250
+        }
+      },
+      "interaction": {
+        "navigationButtons": true,
+        "keyboard": true
+      }
     }
+    """)
     
-    # Map event types to colors for connections with more vibrant colors
+    # Import from NetworkX
+    net.from_nx(G)
+    
+    # Customize nodes based on type and shortest path
+    for node in net.nodes:
+        node_id = node["id"]
+        
+        # Check if this node is a capability
+        is_capability = any(info["name"] == node_id for info in capability_nodes.values())
+        
+        # Set node properties based on type
+        if is_capability:
+            node["color"] = "#e74c3c"  # Red for capabilities
+            node["size"] = 25
+            node["font"] = {"size": 14, "color": "black"}
+            
+            # Highlight CapabilityGetRunner specifically
+            if "CapabilityGetRunner" in node_id:
+                node["color"] = "#9b59b6"  # Purple
+                node["borderWidth"] = 3
+                node["borderWidthSelected"] = 5
+                node["size"] = 30
+        else:
+            node["color"] = "#3498db"  # Blue for messages
+            node["size"] = 20
+            node["font"] = {"size": 12, "color": "black"}
+        
+        # Highlight nodes in the shortest path
+        if shortest_path and node_id in shortest_path:
+            node["borderWidth"] = 2
+            node["borderWidthSelected"] = 4
+            if is_capability:
+                node["color"] = "#2ecc71"  # Green
+            else:
+                node["color"] = "#27ae60"  # Darker green
+            node["size"] += 5
+    
+    # Highlight edges in the shortest path
+    for edge in net.edges:
+        if shortest_path:
+            if edge["from"] in shortest_path and edge["to"] in shortest_path:
+                from_index = shortest_path.index(edge["from"])
+                to_index = shortest_path.index(edge["to"])
+                if to_index == from_index + 1:  # Consecutive nodes in path
+                    edge["width"] = 5
+                    edge["color"] = "#2ecc71"  # Green
+                    edge["arrows"] = {"to": {"enabled": True, "scaleFactor": 1.5}}
+    
+    # Generate unique path for the HTML file
+    path = f"/tmp/graph_{time.time()}.html"
+    net.save_graph(path)
+    
+    # Read the HTML file and display it with Streamlit
+    with open(path, "r", encoding="utf-8") as f:
+        html = f.read()
+    
+    # Display the interactive graph
+    components.html(html, height=height)
+    
+    # Show if CapabilityGetRunner was found
+    capability_runner_found = any("CapabilityGetRunner" in node for node in G.nodes())
+    st.info(f"CapabilityGetRunner Status: {'Found' if capability_runner_found else 'Not Found'}")
+    
+    # Add explanation of the visualization
+    with st.expander("Understanding the Node Path Visualization"):
+        st.markdown("""
+        ### How to Interact with the Graph
+        
+        This interactive network visualization shows connections between robot capabilities and messages:
+        
+        - **Red Nodes**: Capability nodes (robot functions)
+        - **Blue Nodes**: Message nodes (status updates, event messages)
+        - **Purple Node**: CapabilityGetRunner (special capability)
+        - **Lines**: Connections between nodes with their event types
+        - **Direction**: Arrows show the flow of information
+        
+        You can:
+        - **Zoom**: Use the mouse wheel or pinch gestures
+        - **Pan**: Click and drag to move around
+        - **Select**: Click on nodes to highlight their connections
+        - **Find Path**: Use the dropdowns above to highlight the shortest path between nodes
+        """)
+    
+    return None
+
+def get_event_color(event_type):
+    """Helper function to get color for event type"""
     event_colors = {
         0: "#3498db",  # Info (Blue)
         1: "#2ecc71",  # Start (Green)
@@ -373,270 +580,7 @@ def create_node_path_visualization(data, current_time=None, height=800):
         3: "#f39c12",  # Error (Orange)
         4: "#9b59b6"   # Success (Purple)
     }
-    
-    # Sort connections by timestamp
-    sorted_connections = sorted(connections, key=lambda x: x.get("timestamp", 0))
-    
-    # Set up vertical positioning for timeline
-    timeline_height = len(sorted_connections)
-    
-    # Collect all unique source and target nodes by type for separate columns
-    capability_source_ids = set()
-    capability_target_ids = set()
-    message_source_ids = set()
-    message_target_ids = set()
-    
-    # Identify which nodes are capabilities and which are messages
-    for node in nodes:
-        node_id = node.get("id", "")
-        is_capability = node.get("is_capability", False)
-        node_type = node.get("type", "")
-        
-        if is_capability:
-            if node_type == "source" or node_id.startswith("capability_"):
-                capability_source_ids.add(node_id)
-            else:
-                capability_target_ids.add(node_id)
-        else:
-            if node_type == "source":
-                message_source_ids.add(node_id)
-            else:
-                message_target_ids.add(node_id)
-    
-    # Calculate x-positions for different node types (4 columns layout)
-    # Column 1: Capability sources, Column 2: Message sources 
-    # Column 3: Message targets, Column 4: Capability targets
-    x_positions = {
-        "capability_source": 1,
-        "message_source": 3,
-        "message_target": 5,
-        "capability_target": 7
-    }
-    
-    # Keep track of used y-positions for each column
-    y_positions = {
-        "capability_source": {},
-        "message_source": {},
-        "message_target": {},
-        "capability_target": {}
-    }
-    
-    # Draw all the connection lines first
-    for i, conn in enumerate(sorted_connections):
-        source_id = conn.get("source")
-        target_id = conn.get("target")
-        
-        if not source_id or not target_id:
-            continue
-        
-        # Determine node types and columns
-        source_type = "capability_source" if source_id in capability_source_ids else "message_source"
-        target_type = "capability_target" if target_id in capability_target_ids else "message_target"
-        
-        # Calculate y-position for this connection (each row is a different time point)
-        y_pos = timeline_height - i
-        
-        # Store the positions for later drawing with consistent spacing
-        if source_id not in y_positions[source_type]:
-            y_positions[source_type][source_id] = y_pos
-        
-        if target_id not in y_positions[target_type]:
-            y_positions[target_type][target_id] = y_pos
-        
-        # Get source and target x positions
-        source_x = x_positions[source_type]
-        target_x = x_positions[target_type]
-        
-        # Store node positions for later drawing
-        node_positions[source_id] = (source_x, y_pos)
-        node_positions[target_id] = (target_x, y_pos)
-        
-        # Get event type for color
-        event_type = conn.get("event")
-        edge_color = event_colors.get(event_type, "#7f7f7f")  # Gray default
-        
-        # Draw connection line with arrow
-        ax.annotate("", 
-                   xy=(target_x - 0.2, y_pos), 
-                   xytext=(source_x + 0.2, y_pos),
-                   arrowprops=dict(arrowstyle="->", color=edge_color, lw=2, alpha=0.9))
-        
-        # Add connection timestamp with visibility
-        ts = conn.get("timestamp", 0)
-        if ts > 0:
-            time_str = f"{ts:.2f}s"
-            ax.text((source_x + target_x) / 2, y_pos + 0.1, time_str, 
-                   ha='center', va='bottom', fontsize=9, alpha=0.8, 
-                   bbox=dict(facecolor='white', alpha=0.7, pad=1, boxstyle='round'))
-        
-        # Add topic name if available
-        topic = conn.get("topic", "")
-        if topic:
-            # Extract just the last part of the topic path for cleaner display
-            topic_short = topic.split('/')[-1]
-            ax.text((source_x + target_x) / 2, y_pos - 0.1, 
-                   topic_short, ha='center', va='top', fontsize=8, alpha=0.7,
-                   bbox=dict(facecolor='white', alpha=0.5, pad=1, boxstyle='round'))
-            
-        # Get event name for display
-        event_names_dict = {
-            0: "Info",
-            1: "Start",
-            2: "End",
-            3: "Error",
-            4: "Success"
-        }
-        if event_type in event_names_dict:
-            event_name = event_names_dict[event_type]
-            # Add event type label near the arrow
-            ax.text((source_x + target_x) / 2, y_pos - 0.25, 
-                   event_name, ha='center', va='top', fontsize=7, 
-                   color=edge_color, weight='bold')
-    
-    # Now draw the nodes on top of connections with improved visibility
-    for node_id, (x, y) in node_positions.items():
-        # Get node data from lookup dictionary
-        node_data = node_data_by_id.get(node_id)
-        
-        if not node_data:
-            continue
-        
-        # Get node properties
-        is_capability = node_data.get("is_capability", False)
-        node_type = "capability" if is_capability else node_data.get("type", "unknown")
-        node_name = node_data.get("name", node_id)
-        
-        # Determine color based on node type
-        if is_capability:
-            node_color = node_type_colors["capability"]
-        elif node_type == "target" and node_id.startswith("message_"):
-            node_color = node_type_colors["message"]
-        else:
-            node_color = node_type_colors.get(node_type, "#7f7f7f")
-        
-        # Draw larger nodes for better visibility
-        marker_size = 180 if is_capability else 140
-        ax.scatter(x, y, color=node_color, s=marker_size, zorder=3, 
-                   edgecolor='white', linewidth=1.5, alpha=0.9)
-        
-        # Add node name with improved background for better readability
-        # Position text away from the node with more space
-        text_x = x - 0.3 if x in [x_positions["capability_source"], x_positions["message_source"]] else x + 0.3
-        alignment = 'right' if x in [x_positions["capability_source"], x_positions["message_source"]] else 'left'
-        
-        # Handle long node names with appropriate shortening
-        display_name = node_name
-        if len(display_name) > 25:
-            # For capabilities, keep the last part which is usually most informative
-            if is_capability and "/" in display_name:
-                parts = display_name.split("/")
-                display_name = parts[-1]
-            else:
-                display_name = f"{display_name[:22]}..."
-        
-        # Add a background box for better readability with color hint
-        bbox_props = {
-            'facecolor': 'white', 
-            'alpha': 0.85, 
-            'pad': 2, 
-            'boxstyle': 'round,pad=0.5',
-            'edgecolor': node_color,
-            'linewidth': 1.5
-        }
-        
-        # Add node label with background
-        ax.text(text_x, y, display_name, fontsize=10, 
-                ha=alignment, va='center', zorder=4,
-                bbox=bbox_props, fontweight='medium')
-    
-    # Highlight current time if provided
-    if current_time is not None:
-        # Find the closest connection to the current time
-        closest_idx = 0
-        min_diff = float('inf')
-        
-        for i, conn in enumerate(sorted_connections):
-            ts = conn.get("timestamp", 0)
-            diff = abs(ts - current_time)
-            if diff < min_diff:
-                min_diff = diff
-                closest_idx = i
-        
-        # Highlight the line corresponding to current time with more visibility
-        if closest_idx < len(sorted_connections):
-            y_pos = timeline_height - closest_idx
-            ax.axhline(y_pos, color='red', linestyle='--', linewidth=2, alpha=0.7)
-            ax.text(0.5, y_pos + 0.15, "Current Time", color='red', fontweight='bold', fontsize=10,
-                   bbox=dict(facecolor='white', alpha=0.8, pad=2, boxstyle='round'))
-    
-    # Format the plot
-    ax.set_title("Robot Thinking Pattern Visualization", fontsize=18, pad=20)
-    
-    # Set column headers
-    ax.text(x_positions["capability_source"], timeline_height + 1, "CAPABILITY SOURCES", 
-           ha='center', va='bottom', fontsize=12, fontweight='bold', color=node_type_colors["capability"])
-    ax.text(x_positions["message_source"], timeline_height + 1, "MESSAGE SOURCES", 
-           ha='center', va='bottom', fontsize=12, fontweight='bold', color=node_type_colors["source"])
-    ax.text(x_positions["message_target"], timeline_height + 1, "MESSAGE TARGETS", 
-           ha='center', va='bottom', fontsize=12, fontweight='bold', color=node_type_colors["message"])
-    ax.text(x_positions["capability_target"], timeline_height + 1, "CAPABILITY TARGETS", 
-           ha='center', va='bottom', fontsize=12, fontweight='bold', color=node_type_colors["capability"])
-    
-    # Hide axis ticks for cleaner look
-    ax.set_xticks([])
-    ax.set_yticks([])
-    
-    # Add grid lines for better readability
-    ax.grid(True, axis='y', linestyle='--', alpha=0.3)
-    
-    # Set limits with padding
-    ax.set_xlim(0, 8.5)
-    if timeline_height > 0:
-        ax.set_ylim(0.5, timeline_height + 1.5)
-    
-    # Create legend for node types
-    node_legend_elements = [
-        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=node_type_colors["capability"], 
-                  markersize=10, label="Capability Node"),
-        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=node_type_colors["source"], 
-                  markersize=10, label="Source Node"),
-        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=node_type_colors["message"], 
-                  markersize=10, label="Message Node")
-    ]
-    
-    # Create legend for event types
-    event_legend_elements = []
-    event_names_dict = {
-        0: "Info",
-        1: "Start",
-        2: "End",
-        3: "Error",
-        4: "Success"
-    }
-    for event_type, color in event_colors.items():
-        if event_type in event_names_dict:
-            event_legend_elements.append(plt.Line2D([0], [0], color=color, lw=2,
-                                         label=f"{event_names_dict[event_type]} Event"))
-    
-    # Add the legends with better positioning
-    legend1 = ax.legend(handles=node_legend_elements, loc='upper left', 
-                        title="Node Types", fontsize='medium', title_fontsize='medium',
-                        bbox_to_anchor=(0.01, 0.99))
-    ax.add_artist(legend1)
-    
-    legend2 = ax.legend(handles=event_legend_elements, loc='upper right', 
-                      title="Event Types", fontsize='medium', title_fontsize='medium',
-                      bbox_to_anchor=(0.99, 0.99))
-    
-    # Mention CapabilityGetRunner specifically since it's important
-    runner_state = "Found" if any(node.get("name", "") == "std_capabilities/CapabilityGetRunner" for node in nodes) else "Not Found"
-    ax.text(0.5, -0.01, f"CapabilityGetRunner Status: {runner_state}", 
-           ha='center', va='top', fontsize=11, fontweight='bold',
-           transform=ax.transAxes,
-           bbox=dict(facecolor='#e5e5e5', alpha=0.8, pad=3, boxstyle='round'))
-    
-    plt.tight_layout()
-    return fig
+    return event_colors.get(event_type, "#7f7f7f")
 
 def update_foxglove_state(iframe_id, current_time, selected_topics=None, playback_speed=1.0):
     """
