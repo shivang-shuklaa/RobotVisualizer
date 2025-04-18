@@ -6,7 +6,7 @@ import time
 import tempfile
 import numpy as np
 from utils.data_processor import process_robot_data, validate_json_data
-from utils.foxglove_integration import create_json_viewer, get_available_topics, create_node_path_visualization
+from utils.foxglove_integration import create_event_timeline, get_available_topics, create_node_path_visualization
 
 # Set page configuration
 st.set_page_config(
@@ -59,8 +59,8 @@ if uploaded_file is not None:
             st.session_state.topics = get_available_topics(st.session_state.data)
             
             # Initialize selected topics if empty
-            if st.session_state.topics:
-                st.session_state.selected_topics = []
+            if not st.session_state.selected_topics and st.session_state.topics:
+                st.session_state.selected_topics = st.session_state.topics[:min(3, len(st.session_state.topics))]
             
             st.sidebar.success("File successfully loaded!")
         else:
@@ -200,6 +200,8 @@ else:
         )
         
         if node_path_fig:
+            st.pyplot(node_path_fig)
+            
             # Add explanation of the visualization
             st.markdown("""
             ### Understanding the Node Path Visualization
@@ -218,29 +220,34 @@ else:
     with tab2:
         st.subheader("Input JSON Data")
         
-        # Display the raw JSON data
-        json_height = 600
+        # Create visualization using native Streamlit/matplotlib
+        timeline_height = 600
         
-        # Create JSON data viewer
-        create_json_viewer(
+        # Create event timeline
+        timeline_fig = create_event_timeline(
             data=st.session_state.data,
             selected_topics=st.session_state.selected_topics,
             current_time=st.session_state.current_time,
-            height=json_height
+            height=timeline_height
         )
         
-        # Add explanation of the JSON data viewer
-        st.markdown("""
-        ### Understanding the JSON Data
-        
-        This viewer shows the raw JSON data from the uploaded file.
-        
-        - **Browse**: Expand/collapse sections to explore the data structure
-        - **Search**: Use your browser's search function to find specific values
-        - **Filter**: Data is filtered based on your selected topics in the sidebar
-        
-        The JSON view helps inspect the exact data structure and values.
-        """)
+        if timeline_fig:
+            st.pyplot(timeline_fig)
+            
+            # Add explanation of the JSON data viewer
+            st.markdown("""
+            ### Understanding the JSON Data
+            
+            This viewer shows the raw JSON data from the uploaded file.
+            
+            - **Browse**: Expand/collapse sections to explore the data structure
+            - **Search**: Use your browser's search function to find specific values
+            - **Filter**: Data is filtered based on your selected topics in the sidebar
+            
+            The JSON view helps inspect the exact data structure and values.
+            """)
+        else:
+            st.info("No JSON data available for viewing. Try uploading a file with robot data.")
 
 # Add playback animation functionality
 if st.session_state.is_playing:

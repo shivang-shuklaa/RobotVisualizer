@@ -63,53 +63,6 @@ def process_robot_data(content):
     # Store original messages for timeline visualization
     result["messages"] = data if isinstance(data, list) else []
     
-    # Create a list of events that's easier to work with for the visualization
-    events = []
-    
-    # Process ROS bridge format data
-    if isinstance(data, list):
-        for msg_data in data:
-            if "op" in msg_data and msg_data["op"] == "publish" and "topic" in msg_data and "msg" in msg_data:
-                topic = msg_data["topic"]
-                msg_content = msg_data["msg"]
-                
-                # Skip if not a dictionary
-                if not isinstance(msg_content, dict):
-                    continue
-                
-                # Extract timestamp from header if available
-                timestamp = 0
-                if "header" in msg_content and "stamp" in msg_content["header"]:
-                    stamp = msg_content["header"]["stamp"]
-                    if "secs" in stamp and "nsecs" in stamp:
-                        timestamp = float(stamp["secs"]) + float(stamp["nsecs"]) / 1e9
-                
-                # Create event entry
-                event = {
-                    "topic": topic,
-                    "timestamp": timestamp,
-                    "source": {},
-                    "target": {},
-                    "text": ""
-                }
-                
-                # Extract source info
-                if "source" in msg_content and isinstance(msg_content["source"], dict):
-                    event["source"] = msg_content["source"]
-                
-                # Extract target info
-                if "target" in msg_content and isinstance(msg_content["target"], dict):
-                    event["target"] = msg_content["target"]
-                    if "text" in msg_content["target"]:
-                        event["text"] = msg_content["target"]["text"]
-                    if "event" in msg_content["target"]:
-                        event["event"] = msg_content["target"]["event"]
-                
-                events.append(event)
-    
-    # Add events to result
-    result["events"] = events
-    
     # Process time range if available
     result["time_range"] = extract_time_range(data)
     

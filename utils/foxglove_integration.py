@@ -195,31 +195,20 @@ def get_available_topics(data):
     Returns:
         list: Available topics for visualization
     """
-    topics = set()
-    for entry in data.get("events", []):
-        topic = entry.get("topic")
-        if topic:
-            topics.add(topic)
-    return list(topics)
-
-def create_json_viewer(data, selected_topics=None, current_time=None, height=600):
-    """
-    Display the uploaded JSON data in a Streamlit JSON viewer.
+    topics = []
     
-    Args:
-        data: Processed data dictionary containing messages
-        selected_topics: List of topics to display
-        current_time: Current playback time
-        height: Height of the visualization
-        
-    Returns:
-        None - Displays JSON data directly in Streamlit
-    """
-    st.subheader("Uploaded JSON Data Viewer")
-    st.json(data)
-    return None
-
-
+    # Get topics from metadata
+    if "topic_metadata" in data:
+        topics.extend(data["topic_metadata"].keys())
+    
+    # Get topics from time series data
+    if "time_series" in data:
+        topics.extend(data["time_series"].keys())
+    
+    # Remove duplicates and sort
+    topics = sorted(list(set(topics)))
+    
+    return topics
 
 def create_node_path_visualization(data, current_time=None, height=600):
     """
@@ -231,148 +220,272 @@ def create_node_path_visualization(data, current_time=None, height=600):
         height: Height of the visualization
         
     Returns:
-        True if visualization was created, False otherwise
+        None - Renders the interactive network directly in Streamlit
     """
     from pyvis.network import Network
     import networkx as nx
     import streamlit.components.v1 as components
-    import matplotlib.pyplot as plt
-    import matplotlib.patches as mpatches
     import time
-    import json
-
+    
+    if "node_paths" not in data or not data["node_paths"]:
+        st.info("No node path data available for visualization")
+        return None
+    
+    node_paths = data["node_paths"]
+    capability_count = node_paths.get("capability_count", 0)
+    
+    # Display the count of capabilities found
+    st.info(f"Found {capability_count} unique capabilities in the robot data")
+    
     # Create a NetworkX directed graph
     G = nx.DiGraph()
-    valid_connections = 0
-
-    # Add nodes and edges from the event data
-    for entry in data.get("events", []):
-        # Fallback capability extraction with more flexibility
-        source = entry.get("source", {}).get("capability") \
-                 or entry.get("source", {}).get("provider") \
-                 or entry.get("source", {}).get("label")
-
-        target = entry.get("target", {}).get("capability") \
-                 or entry.get("target", {}).get("provider") \
-                 or entry.get("target", {}).get("label")
-
-        label = entry.get("text", "")
-
-        # Clean up whitespace and type-check
-        if isinstance(source, str):
-            source = source.strip()
-        else:
-            source = None
-        if isinstance(target, str):
-            target = target.strip()
-        else:
-            target = None
-
-        # Add valid edges, or fallback to isolated nodes
-        if source and target:
-            G.add_node(source)
-            G.add_node(target)
-            G.add_edge(source, target, label=label)
-            valid_connections += 1
-        else:
-            # Even if not connected, add standalone nodes for visualization
-            if source:
-                G.add_node(source)
-            if target:
-                G.add_node(target)
-
-    if G.number_of_nodes() == 0:
-        st.warning("No valid node data found in the file.")
-        st.markdown("#### Debugging: Preview of first 5 event entries with source/target")
-        for i, entry in enumerate(data.get("events", [])[:5]):
-            st.write(f"Event {i+1}")
-            st.json({
-                "source": entry.get("source", {}),
-                "target": entry.get("target", {}),
-                "text": entry.get("text", "")
-            })
-        return False
-
-    # Toggle to show all paths from all nodes
-    show_all_paths = st.checkbox("Show All Paths from All Nodes")
-
-    if show_all_paths:
-        st.markdown("### All Directed Paths in Graph")
-        for start_node in G.nodes():
-            for end_node in G.nodes():
-                if start_node != end_node:
-                    try:
-                        path = nx.shortest_path(G, source=start_node, target=end_node)
-                        st.markdown(f"`{start_node}` → `{end_node}`: {' → '.join(path)}")
-                    except:
-                        continue
-        return True
-
+    
+    # Create a mapping of capability nodes
+    capability_nodes = {}
+    message_nodes = {}
+    
+    # Process nodes first to identify capabilities
+    if "nodes" in node_paths and node_paths["nodes"]:
+        for node in node_paths["nodes"]:
+            node_id = node.get("id", "")
+            node_name = node.get("name", "")
+            is_capability = node.get("is_capability", False)
+            
+            if is_capability and node_name:
+                # For capabilities, clean up the name to just show the last part
+                if "/" in node_name:
+                    display_name = node_name.split("/")[-1]
+                else:
+                    display_name = node_name
+                
+                # Store mapping for easy lookup
+                capability_nodes[node_id] = {"name": node_name, "display_name": display_name}
+                
+                # Add to graph
+                G.add_node(node_name, title=node_name, group=1)
+            elif node_id.startswith("message_"):
+                # For message nodes, create a cleaner display name
+                display_name = node_name
+                if len(display_name) > 30:
+                    display_name = f"{display_name[:27]}..."
+                
+                message_nodes[node_id] = {"name": node_name, "display_name": display_name}
+                
+                # Add to graph
+                G.add_node(node_name, title=node_name, group=2)
+    
+    # Process connections to draw edges
+    if "connections" in node_paths and node_paths["connections"]:
+        for conn in node_paths["connections"]:
+            source_id = conn.get("source")
+            target_id = conn.get("target")
+            topic = conn.get("topic", "")
+            timestamp = conn.get("timestamp", 0)
+            event_type = conn.get("event", 0)
+            text = conn.get("text", "")
+            
+            # Map event types to names
+            event_names = {
+                0: "Info",
+                1: "Start",
+                2: "End",
+                3: "Error",
+                4: "Success"
+            }
+            event_name = event_names.get(event_type, "Unknown")
+            
+            # Get node information
+            source_info = None
+            target_info = None
+            
+            if source_id in capability_nodes:
+                source_info = capability_nodes[source_id]
+            elif source_id in message_nodes:
+                source_info = message_nodes[source_id]
+                
+            if target_id in capability_nodes:
+                target_info = capability_nodes[target_id]
+            elif target_id in message_nodes:
+                target_info = message_nodes[target_id]
+            
+            # Skip if we don't have valid source and target
+            if not source_info or not target_info:
+                continue
+                
+            source_name = source_info["name"]
+            target_name = target_info["name"]
+            
+            # Create a meaningful edge label
+            edge_label = f"{event_name}"
+            if topic:
+                topic_short = topic.split('/')[-1]
+                edge_label += f" - {topic_short}"
+            if timestamp:
+                edge_label += f" ({timestamp:.2f}s)"
+                
+            # Add edge to graph
+            G.add_edge(source_name, target_name, 
+                       title=edge_label, 
+                       label=event_name,
+                       color=get_event_color(event_type),
+                       time=timestamp)
+    
     # Show dropdowns in Streamlit for shortest path
     st.markdown("### Shortest Path Highlighter")
-    all_nodes = list(G.nodes())
-    if not all_nodes:
-        st.error("No nodes available for selection.")
-        return False
-
-    start_node = st.selectbox("Select Start Node", all_nodes, key="start_node")
-    end_node = st.selectbox("Select End Node", all_nodes, key="end_node")
-
+    
+    # Get all capability nodes for dropdown
+    all_nodes = sorted(list(G.nodes()))
+    
+    # Select nodes for shortest path highlighting
+    col1, col2 = st.columns(2)
+    with col1:
+        start_node = st.selectbox("Select Start Node", all_nodes, key="start_node")
+    with col2:
+        end_node = st.selectbox("Select End Node", all_nodes, key="end_node")
+        
+    # Calculate shortest path
+    shortest_path = []
     try:
-        shortest_path = nx.shortest_path(G, source=start_node, target=end_node)
-    except Exception:
-        st.error(f"No path exists between {start_node} and {end_node}")
-        shortest_path = []
-
-    # Create a subgraph if a path exists
-    subgraph_nodes = shortest_path if shortest_path else []
-    subgraph_edges = [(shortest_path[i], shortest_path[i+1]) for i in range(len(shortest_path)-1)] if shortest_path else []
-    SG = nx.DiGraph()
-    SG.add_nodes_from(subgraph_nodes)
-    SG.add_edges_from(subgraph_edges)
-
-    # Create PyVis network
-    net = Network(height=f"{height}px", directed=True, bgcolor="#0e1117", font_color="white")
-    net.from_nx(SG if shortest_path else G)
-
-    # Highlight shortest path nodes and edges
+        if start_node and end_node and start_node != end_node:
+            shortest_path = nx.shortest_path(G, source=start_node, target=end_node)
+            st.success(f"Found path with {len(shortest_path)-1} steps between nodes")
+    except nx.NetworkXNoPath:
+        st.warning(f"No path exists between {start_node} and {end_node}")
+    except Exception as e:
+        st.error(f"Error finding path: {str(e)}")
+    
+    # Create PyVis network with dark background color (#36393e)
+    net = Network(height=f"{height}px", width="100%", directed=True, notebook=False, bgcolor="#36393e", font_color="white")
+    
+    # Set physics options for better layout
+    net.set_options("""
+    {
+      "physics": {
+        "hierarchicalRepulsion": {
+          "centralGravity": 0.0,
+          "springLength": 150,
+          "springConstant": 0.01,
+          "nodeDistance": 200,
+          "damping": 0.09
+        },
+        "solver": "hierarchicalRepulsion",
+        "stabilization": {
+          "iterations": 100
+        }
+      },
+      "layout": {
+        "hierarchical": {
+          "enabled": true,
+          "direction": "LR",
+          "sortMethod": "directed",
+          "levelSeparation": 250
+        }
+      },
+      "interaction": {
+        "navigationButtons": true,
+        "keyboard": true
+      },
+      "configure": {
+        "enabled": false
+      },
+      "nodes": {
+        "font": {
+          "color": "#ffffff"
+        }
+      },
+      "edges": {
+        "font": {
+          "color": "#ffffff"
+        }
+      }
+    }
+    """)
+    
+    # Import from NetworkX
+    net.from_nx(G)
+    
+    # Customize nodes based on type and shortest path
     for node in net.nodes:
-        if node["id"] in shortest_path:
-            node["color"] = "lightgreen"
+        node_id = node["id"]
+        
+        # Check if this node is a capability
+        is_capability = any(info["name"] == node_id for info in capability_nodes.values())
+        
+        # Set node properties based on type with lighter font color for dark background
+        if is_capability:
+            node["color"] = "#e74c3c"  # Red for capabilities
+            node["size"] = 25
+            node["font"] = {"size": 14, "color": "white"}
+            node["borderWidth"] = 2
+            
+            # Highlight CapabilityGetRunner specifically
+            if "CapabilityGetRunner" in node_id:
+                node["color"] = "#9b59b6"  # Purple
+                node["borderWidth"] = 3
+                node["borderWidthSelected"] = 5
+                node["size"] = 30
+        else:
+            node["color"] = "#3498db"  # Blue for messages
             node["size"] = 20
-
+            node["font"] = {"size": 12, "color": "white"}
+        
+        # Highlight nodes in the shortest path
+        if shortest_path and node_id in shortest_path:
+            node["borderWidth"] = 2
+            node["borderWidthSelected"] = 4
+            if is_capability:
+                node["color"] = "#2ecc71"  # Green
+            else:
+                node["color"] = "#27ae60"  # Darker green
+            node["size"] += 5
+    
+    # Highlight edges in the shortest path
     for edge in net.edges:
-        if edge["from"] in shortest_path and edge["to"] in shortest_path:
-            from_index = shortest_path.index(edge["from"])
-            to_index = shortest_path.index(edge["to"])
-            if to_index == from_index + 1:
-                edge["color"] = "red"
-                edge["width"] = 3
-
-    # Force-directed layout
-    net.repulsion(node_distance=200, central_gravity=0.3, spring_length=200, damping=0.9)
-
-    # Save to HTML and show in Streamlit
+        if shortest_path:
+            if edge["from"] in shortest_path and edge["to"] in shortest_path:
+                from_index = shortest_path.index(edge["from"])
+                to_index = shortest_path.index(edge["to"])
+                if to_index == from_index + 1:  # Consecutive nodes in path
+                    edge["width"] = 5
+                    edge["color"] = "#2ecc71"  # Green
+                    edge["arrows"] = {"to": {"enabled": True, "scaleFactor": 1.5}}
+    
+    # Generate unique path for the HTML file
     path = f"/tmp/graph_{time.time()}.html"
-    net.write_html(path, notebook=False)
+    net.save_graph(path)
+    
+    # Read the HTML file and display it with Streamlit
     with open(path, "r", encoding="utf-8") as f:
         html = f.read()
+    
+    # Display the interactive graph
     components.html(html, height=height)
-
-    # Display available paths from the selected start node
-    st.markdown("### All Reachable End Nodes from Selected Start Node")
-    reachable = list(nx.descendants(G, start_node))
-    if reachable:
-        for target in reachable:
-            try:
-                path = nx.shortest_path(G, source=start_node, target=target)
-                st.markdown(f"`{start_node}` → `{target}`: {' → '.join(path)}")
-            except:
-                continue
-    else:
-        st.info(f"No reachable nodes from `{start_node}`.")
-
-    return True
+    
+    # Show if CapabilityGetRunner was found
+    capability_runner_found = any("CapabilityGetRunner" in node for node in G.nodes())
+    st.info(f"CapabilityGetRunner Status: {'Found' if capability_runner_found else 'Not Found'}")
+    
+    # Add explanation of the visualization
+    with st.expander("Understanding the Node Path Visualization"):
+        st.markdown("""
+        ### How to Interact with the Graph
+        
+        This interactive network visualization shows connections between robot capabilities and messages:
+        
+        - **Red Nodes**: Capability nodes (robot functions)
+        - **Blue Nodes**: Message nodes (status updates, event messages)
+        - **Purple Node**: CapabilityGetRunner (special capability)
+        - **Lines**: Connections between nodes with their event types
+        - **Direction**: Arrows show the flow of information
+        
+        You can:
+        - **Zoom**: Use the mouse wheel or pinch gestures
+        - **Pan**: Click and drag to move around
+        - **Select**: Click on nodes to highlight their connections
+        - **Find Path**: Use the dropdowns above to highlight the shortest path between nodes
+        """)
+    
+    return None
 
 def get_event_color(event_type):
     """Helper function to get color for event type"""
