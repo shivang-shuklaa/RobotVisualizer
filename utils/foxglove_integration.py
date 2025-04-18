@@ -4,10 +4,14 @@ import json
 import numpy as np
 import os
 import uuid
+import time
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 from matplotlib.colors import LinearSegmentedColormap
 import matplotlib.dates as mdates
 from datetime import datetime, timedelta
+import networkx as nx
+import streamlit.components.v1 as components
 
 def create_event_timeline(data, selected_topics=None, current_time=None, height=600):
     """
@@ -22,134 +26,130 @@ def create_event_timeline(data, selected_topics=None, current_time=None, height=
     Returns:
         Streamlit matplotlib figure
     """
-    if "messages" not in data or not data["messages"]:
-        st.info("No message data available for visualization")
+    if not data:
+        st.warning("No data available for visualization")
         return None
     
-    messages = data["messages"]
+    # Check if we have traditional messages format
+    if "messages" in data and data["messages"]:
+        events = []
+        
+        # Process from ROS Bridge messages
+        for msg in data["messages"]:
+            if "topic" in msg and (selected_topics is None or msg["topic"] in selected_topics):
+                if "msg" in msg and isinstance(msg["msg"], dict):
+                    event = {}
+                    
+                    # Extract timestamp
+                    if "header" in msg["msg"] and "stamp" in msg["msg"]["header"]:
+                        stamp = msg["msg"]["header"]["stamp"]
+                        ts = float(stamp["secs"]) + float(stamp["nsecs"]) / 1e9
+                        event["header"] = {"stamp": {"secs": ts}}
+                    
+                    # Extract event type
+                    if "target" in msg["msg"] and "event" in msg["msg"]["target"]:
+                        event["event"] = msg["msg"]["target"]["event"]
+                    
+                    # Extract capability
+                    if "source" in msg["msg"] and "capability" in msg["msg"]["source"]:
+                        event["source"] = {"capability": msg["msg"]["source"]["capability"]}
+                    
+                    # Extract topic
+                    event["topic"] = msg["topic"]
+                    
+                    # Add to events list if we have enough data
+                    if "header" in event and "source" in event:
+                        events.append(event)
+        
+        data["events"] = events
     
-    # Extract timestamps and events
-    timestamps = []
-    event_types = []
-    capabilities = []
-    texts = []
-    
-    for msg in messages:
-        if "topic" in msg and (selected_topics is None or msg["topic"] in selected_topics):
-            if "msg" in msg and "header" in msg["msg"] and "stamp" in msg["msg"]["header"]:
-                # Extract timestamp
-                stamp = msg["msg"]["header"]["stamp"]
-                ts = float(stamp["secs"]) + float(stamp["nsecs"]) / 1e9
-                timestamps.append(ts)
-                
-                # Extract event type
-                event_type = 0
-                if "target" in msg["msg"] and "event" in msg["msg"]["target"]:
-                    event_type = msg["msg"]["target"]["event"]
-                event_types.append(event_type)
-                
-                # Extract capability
-                capability = ""
-                if "source" in msg["msg"] and "capability" in msg["msg"]["source"]:
-                    capability = msg["msg"]["source"]["capability"]
-                capabilities.append(capability)
-                
-                # Extract message text
-                text = ""
-                if "target" in msg["msg"] and "text" in msg["msg"]["target"]:
-                    text = msg["msg"]["target"]["text"]
-                texts.append(text)
-    
-    if not timestamps:
-        st.info("No timeline data available for the selected topics")
+    # Return if we don't have any events
+    if "events" not in data or not data["events"]:
+        st.warning("No event data available.")
         return None
     
-    # Create a DataFrame for the events
-    df = pd.DataFrame({
-        'timestamp': timestamps,
-        'event_type': event_types,
-        'capability': capabilities,
-        'text': texts
-    })
+    # Filter events by selected topics
+    filtered_events = data["events"]
+    if selected_topics:
+        filtered_events = [e for e in data["events"] if e.get("topic") in selected_topics]
     
-    # Sort by timestamp
-    df = df.sort_values('timestamp')
+    if not filtered_events:
+        st.info("No matching events for selected topics.")
+        return None
     
-    # Convert timestamps to datetime for plotting
-    min_time = df['timestamp'].min()
-    df['datetime'] = [datetime.fromtimestamp(ts) for ts in df['timestamp']]
+    # Create the figure
+    fig, ax = plt.subplots(figsize=(12, height/100), facecolor='#1e1e1e')
+    ax.set_facecolor('#1e1e1e')  # Dark background for the plot area
     
-    # Map event types to names and colors
-    event_map = {
-        0: ("Info", "#1f77b4"),  # Blue
-        1: ("Start", "#2ca02c"),  # Green
-        2: ("End", "#d62728"),    # Red
-        3: ("Error", "#ff7f0e"),  # Orange
-        4: ("Success", "#9467bd") # Purple
+    # Define colors for event types
+    colors = {
+        0: "#3498db",  # Info (Blue)
+        1: "#2ecc71",  # Start (Green)
+        2: "#e74c3c",  # End (Red) 
+        3: "#f39c12",  # Error (Orange)
+        4: "#9b59b6"   # Success (Purple)
     }
     
-    # Extract unique capabilities and assign colors
-    unique_capabilities = df['capability'].unique()
-    capability_colors = {}
+    # Event type names for legend
+    legend = {
+        0: "Info",
+        1: "Start",
+        2: "End",
+        3: "Error",
+        4: "Success"
+    }
     
-    # Generate a color map for capabilities
-    cmap = plt.cm.get_cmap('tab20', len(unique_capabilities))
+    # Store labels for y-axis
+    y_labels = []
+    y_positions = []
     
-    for i, cap in enumerate(unique_capabilities):
-        capability_colors[cap] = cmap(i)
-    
-    # Create the timeline plot
-    fig, ax = plt.subplots(figsize=(10, height/80))
-    
-    # Plot events as scatter points
-    for i, row in df.iterrows():
-        event_type = row['event_type']
-        event_name, event_color = event_map.get(event_type, ("Unknown", "#7f7f7f"))
+    # Plot events
+    for idx, event in enumerate(filtered_events):
+        # Extract event data
+        stamp = event.get("header", {}).get("stamp", {}).get("secs", 0)
+        capability = event.get("source", {}).get("capability", "Unknown")
+        event_type = event.get("event", 0)
         
-        capability = row['capability']
-        cap_color = capability_colors.get(capability, (0.5, 0.5, 0.5, 1.0))
+        # Use a horizontal bar to represent event
+        ax.barh(idx, 0.8, left=stamp, height=0.6, 
+                color=colors.get(event_type, "gray"), 
+                alpha=0.8, edgecolor='white', linewidth=0.5)
         
-        # Plot point
-        ax.scatter(row['datetime'], i, color=event_color, s=80, zorder=3)
-        
-        # Add capability bar
-        if capability:
-            ax.hlines(i, row['datetime'] - timedelta(seconds=0.2), 
-                     row['datetime'] + timedelta(seconds=0.2), 
-                     color=cap_color, linewidth=8, alpha=0.6, zorder=2)
+        # Store label information
+        y_labels.append(capability.split('/')[-1] if '/' in capability else capability)  # Show only last part of capability name
+        y_positions.append(idx)
     
-    # Add text labels for some points
-    for i, row in df.iterrows():
-        if i % 3 == 0:  # Only label every 3rd point to avoid overcrowding
-            ax.text(row['datetime'], i, f" {row['text'][:15]}...", 
-                   fontsize=8, verticalalignment='center')
+    # Set y-axis ticks and labels
+    ax.set_yticks(y_positions)
+    ax.set_yticklabels(y_labels, fontsize=9, color='white')
+    
+    # Set labels and title with white color for dark theme
+    ax.set_xlabel("Time (secs)", color='white', fontsize=10)
+    ax.set_title("Robot Event Timeline", color='white', fontsize=14, pad=10)
+    
+    # Set grid for better readability
+    ax.grid(True, linestyle='--', alpha=0.3, color='gray')
+    
+    # Style the axes for dark theme
+    ax.spines['bottom'].set_color('white')
+    ax.spines['top'].set_color('white') 
+    ax.spines['right'].set_color('white')
+    ax.spines['left'].set_color('white')
+    ax.tick_params(axis='x', colors='white')
+    ax.tick_params(axis='y', colors='white')
+    
+    # Add legend
+    patches = [mpatches.Patch(color=color, label=legend[code]) 
+               for code, color in colors.items() if code in [e.get("event", 0) for e in filtered_events]]
+    ax.legend(handles=patches, loc='upper right', framealpha=0.7, 
+              facecolor='#1e1e1e', edgecolor='white', fontsize=9, labelcolor='white')
     
     # Highlight current time if provided
     if current_time is not None:
-        current_dt = datetime.fromtimestamp(current_time)
-        ax.axvline(current_dt, color='red', linestyle='--', linewidth=2)
-    
-    # Format the plot
-    ax.set_title("Robot Event Timeline")
-    ax.set_xlabel("Time")
-    ax.set_yticks([])
-    
-    # Format the x-axis with appropriate time units
-    time_range = df['timestamp'].max() - df['timestamp'].min()
-    if time_range < 60:  # Less than a minute
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S.%f'))
-    else:
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
-    
-    # Create legend for event types
-    legend_elements = []
-    for event_type, (name, color) in event_map.items():
-        if event_type in df['event_type'].values:
-            legend_elements.append(plt.Line2D([0], [0], marker='o', color='w', 
-                                            markerfacecolor=color, markersize=10, label=name))
-    
-    # Add the legend
-    ax.legend(handles=legend_elements, loc='upper right')
+        ax.axvline(current_time, color='red', linestyle='--', linewidth=2, alpha=0.7)
+        ax.text(current_time, len(filtered_events) * 0.95, "Current", 
+                color='red', fontsize=9, ha='right', va='top',
+                bbox=dict(facecolor='#1e1e1e', alpha=0.7, edgecolor='red', boxstyle='round'))
     
     plt.tight_layout()
     return fig
@@ -452,10 +452,10 @@ def create_node_path_visualization(data, current_time=None, height=600):
     except Exception as e:
         st.error(f"Error finding path: {str(e)}")
     
-    # Create PyVis network
-    net = Network(height=f"{height}px", width="100%", directed=True, notebook=False)
+    # Create PyVis network with dark background color (#36393e)
+    net = Network(height=f"{height}px", width="100%", directed=True, notebook=False, bgcolor="#36393e", font_color="white")
     
-    # Set physics options for better layout with dark background color (#36393e)
+    # Set physics options for better layout
     net.set_options("""
     {
       "physics": {
@@ -495,8 +495,7 @@ def create_node_path_visualization(data, current_time=None, height=600):
         "font": {
           "color": "#ffffff"
         }
-      },
-      "backgroundColor": "#36393e"
+      }
     }
     """)
     

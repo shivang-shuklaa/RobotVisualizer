@@ -1,0 +1,114 @@
+from pyvis.network import Network
+import networkx as nx
+import streamlit as st
+import streamlit.components.v1 as components
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+import time
+
+def create_node_path_visualization(data, current_time, height=600):
+    # Create a NetworkX directed graph
+    G = nx.DiGraph()
+
+    # Add nodes and edges from the event data
+    for entry in data.get("events", []):
+        source = entry.get("source", {}).get("capability")
+        target = entry.get("target", {}).get("capability")
+        label = entry.get("text", "")
+
+        if source and target:
+            G.add_node(source)
+            G.add_node(target)
+            G.add_edge(source, target, label=label)
+
+    if G.number_of_nodes() == 0:
+        st.warning("No valid node path data found in the file.")
+        return None
+
+    # Show dropdowns in Streamlit for shortest path
+    st.markdown("### Shortest Path Highlighter")
+    all_nodes = list(G.nodes())
+    start_node = st.selectbox("Select Start Node", all_nodes, key="start_node")
+    end_node = st.selectbox("Select End Node", all_nodes, key="end_node")
+
+    try:
+        shortest_path = nx.shortest_path(G, source=start_node, target=end_node)
+    except Exception:
+        shortest_path = []
+
+    # Create PyVis network
+    net = Network(height=f"{height}px", directed=True, bgcolor="#0e1117", font_color="white")
+    net.from_nx(G)
+
+    # Highlight shortest path nodes and edges
+    for node in net.nodes:
+        if node["id"] in shortest_path:
+            node["color"] = "lightgreen"
+            node["size"] = 20
+
+    for edge in net.edges:
+        if edge["from"] in shortest_path and edge["to"] in shortest_path:
+            from_index = shortest_path.index(edge["from"])
+            to_index = shortest_path.index(edge["to"])
+            if to_index == from_index + 1:
+                edge["color"] = "red"
+                edge["width"] = 3
+
+    # Force-directed layout
+    net.repulsion(node_distance=200, central_gravity=0.3, spring_length=200, damping=0.9)
+
+    # Save to HTML and show in Streamlit
+    path = f"/tmp/graph_{time.time()}.html"
+    net.show(path)
+    with open(path, "r", encoding="utf-8") as f:
+        html = f.read()
+    components.html(html, height=height)
+
+def get_available_topics(data):
+    topics = set()
+    for entry in data.get("events", []):
+        topic = entry.get("topic")
+        if topic:
+            topics.add(topic)
+    return list(topics)
+
+def create_event_timeline(data, selected_topics, current_time, height=600):
+    if "events" not in data:
+        st.warning("No event data available.")
+        return None
+
+    filtered_events = [e for e in data["events"] if e.get("topic") in selected_topics]
+    if not filtered_events:
+        st.info("No matching events for selected topics.")
+        return None
+
+    fig, ax = plt.subplots(figsize=(12, height/100))
+    y_labels = []
+    colors = {0: "gray", 1: "blue", 2: "green", 3: "red", 4: "orange"}
+    legend = {
+        0: "Info",
+        1: "Start",
+        2: "End",
+        3: "Error",
+        4: "Success"
+    }
+
+    for idx, event in enumerate(filtered_events):
+        stamp = event.get("header", {}).get("stamp", {}).get("secs", 0)
+        label = event.get("source", {}).get("capability", "Unknown")
+        event_type = event.get("event", 0)
+        ax.barh(idx, 1, left=stamp, color=colors.get(event_type, "black"))
+        y_labels.append(label)
+
+    ax.set_yticks(range(len(y_labels)))
+    ax.set_yticklabels(y_labels)
+    ax.set_xlabel("Time (secs)")
+    ax.set_title("Event Timeline")
+    ax.grid(True)
+
+    # Add legend manually
+    patches = [mpatches.Patch(color=color, label=legend[code]) for code, color in colors.items()]
+    ax.legend(handles=patches)
+
+    st.pyplot(fig)
+    return fig
