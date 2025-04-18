@@ -336,12 +336,25 @@ def create_node_path_visualization(data, current_time=None, height=600):
     # Get all capability nodes for dropdown
     all_nodes = sorted(list(G.nodes()))
     
-    # Select nodes for shortest path highlighting
-    col1, col2 = st.columns(2)
-    with col1:
-        start_node = st.selectbox("Select Start Node", all_nodes, key="start_node")
-    with col2:
-        end_node = st.selectbox("Select End Node", all_nodes, key="end_node")
+    # Apply custom CSS to make the dropdown wider
+    st.markdown("""
+    <style>
+    .stSelectbox {
+        width: 100%;
+        min-width: 100%;
+    }
+    div[data-baseweb="select"] > div {
+        min-width: 100%;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Stack the dropdowns vertically for more space
+    start_node = st.selectbox("Select Start Node", all_nodes, key="start_node", 
+                              format_func=lambda x: x)  # Show full name
+    
+    end_node = st.selectbox("Select End Node", all_nodes, key="end_node",
+                            format_func=lambda x: x)  # Show full name
         
     # Calculate shortest path
     shortest_path = []

@@ -15,6 +15,27 @@ st.set_page_config(
     layout="wide",
 )
 
+# Add custom CSS for better dropdown styling
+st.markdown("""
+<style>
+/* Make dropdowns wider for better text display */
+.stSelectbox {
+    width: 100%;
+    min-width: 100%;
+}
+
+div[data-baseweb="select"] > div {
+    min-width: 100%;
+}
+
+/* Improve dropdown readability */
+.stSelectbox div[role="listbox"] span {
+    white-space: normal;
+    word-wrap: break-word;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # Main title
 st.title("Robot Path Visualizer")
 st.markdown("Upload JSON robot data files to visualize node paths and robot operations")
