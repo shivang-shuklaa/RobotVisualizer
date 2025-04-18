@@ -6,7 +6,7 @@ import time
 import tempfile
 import numpy as np
 from utils.data_processor import process_robot_data, validate_json_data
-from utils.foxglove_integration import create_event_timeline, get_available_topics, create_node_path_visualization, create_json_viewer
+from utils.foxglove_integration import create_event_timeline, get_available_topics, create_node_path_visualization
 
 # Set page configuration
 st.set_page_config(
@@ -47,20 +47,6 @@ st.markdown("""
         .stSelectbox div[role="listbox"] span {
             white-space: normal;
             word-wrap: break-word;
-        }
-        
-        /* Prevent text truncation with ellipsis (...) */
-        div[data-baseweb="select"] span {
-            text-overflow: unset !important;
-            white-space: normal !important;
-            overflow: visible !important;
-        }
-
-        /* Make the dropdown options display full text */
-        div[role="listbox"] div {
-            text-overflow: unset !important;
-            white-space: normal !important;
-            overflow: visible !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -145,57 +131,6 @@ if st.session_state.data is None:
     This tool allows you to visualize and analyze robot data from JSON files.
     - Upload a file from the sidebar.
     - Visualize node paths and system behaviors.
-    """)
-    
-    # Getting started guide
-    st.markdown("## Getting Started")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("Node Path Visualization")
-        st.markdown("""
-        - Visualize the robot's "thinking pattern" with clear node names
-        - See direct connections between source and target nodes
-        - Track the flow of information with color-coded event types
-        - Understand complex decision-making processes
-        """)
-        
-        st.subheader("JSON Data Viewer")
-        st.markdown("""
-        - Inspect the raw data structure from the uploaded file
-        - Browse through the JSON object hierarchy
-        - Filter data based on selected topics
-        - Look for patterns in the robot data
-        """)
-    
-    with col2:
-        st.subheader("Interactive Features")
-        st.markdown("""
-        - Click and drag to move around the visualization
-        - Zoom in/out to focus on specific areas
-        - Select nodes to highlight connections
-        - Find shortest paths between capabilities
-        """)
-        
-        st.subheader("Playback Controls")
-        st.markdown("""
-        - Animation controls to visualize changes over time
-        - Timeline slider for precise time selection
-        - Play/pause and reset functionality
-        """)
-    
-    st.markdown("""
-    ## Supported Data Formats
-    
-    The application primarily supports JSON files with ROS bridge messages, including:
-    
-    - Standard ROS message format with topic, timestamp, and data
-    - ROS bridge messages with operation, topic, and message content
-    - Robot state information including position, orientation, and joint states
-    - Capability events and state transitions
-    
-    **Start by uploading a JSON file using the file uploader in the sidebar!**
     """)
 else:
     tab1, tab2 = st.tabs(["Node Path Visualization", "JSON Data Viewer"])
